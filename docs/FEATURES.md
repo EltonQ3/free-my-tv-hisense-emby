@@ -3,13 +3,13 @@
 本改版面向中國大陸版、搭載 MediaTek MT9655 的 Hisense TV；目前僅測試海信 UXS 可用性。其他 MT9655 型號、其他晶片、其他地區版本及韌體未驗證，不能視為所有海信電視均已適配。
 
 
-這是此 fork 首次公開發行的功能導覽。以下首頁、帳號選單、六主題及主題選擇器均為 **2026-10-25 補拍的 1.8.1 真機畫面**；圖示的「修改前」另有明確標註。擁有者允許展示片庫、觀看進度和頭像，帳號名稱改成 User 1–5；不發布伺服器地址、金鑰或配對資料。圖片已重新編碼移除中繼資料。
+這是此 fork 首次公開發行的功能導覽。以下首頁、帳號選單、六主題及主題選擇器均為 **2026-10-25 補拍的 1.8.1 真機畫面**。擁有者允許展示片庫、觀看進度和頭像，帳號名稱改成 User 1–5；不發布伺服器地址、金鑰或配對資料。圖片已重新編碼移除中繼資料。
 
 ## 自己的 Emby 片庫與進度
 
 ![繼續播放](assets/hisense/home-emby-181.webp)
 
-「繼續播放」獨立放在第一頁，主卡片顯示所選用戶的進度；點選時再次查詢，明確將起播位置交給官方 Emby 播放器。劇集先找該用戶應接續的一集，避免誤播最新入庫集數。
+「繼續播放」獨立放在第一頁，主卡片顯示所選用戶的進度；點選時再次查詢，明確將起播位置交給官方 Emby 播放器。劇集依該用戶的觀看進度選擇接續集數。
 
 ![隨機推薦](assets/hisense/emby-random.webp)
 
@@ -35,7 +35,7 @@
 
 ![六種主題選擇器](assets/hisense/themes-lucy.webp)
 
-六個主題可在「主题设置」直接更換，與首頁明暗選項分開。每個插畫主題配有自己的色彩和面板；濾鏡快取在背景準備，不在每幀重新模糊整張背景。以下均為 1.8.1 設定主頁，裁去下方歷史通知區。
+六個主題可在「主题设置」直接更換，與首頁明暗選項分開。每個插畫主題配有自己的色彩和面板；濾鏡快取在背景準備，不在每幀重新模糊整張背景。以下均為 1.8.1 設定主頁的實機畫面。
 
 **Chiikawa／經典**
 
@@ -47,13 +47,13 @@
 
 **Lucy 夜之城／魔法使之夜**
 
-<img src="assets/hisense/settings-lucy.webp" alt="Lucy 夜之城修正妝色與睫毛" width="440"> <img src="assets/hisense/settings-mahoyo.webp" alt="魔法使之夜月白冰藍面板" width="440">
+<img src="assets/hisense/settings-lucy.webp" alt="Lucy 夜之城霓虹色彩面板" width="440"> <img src="assets/hisense/settings-mahoyo.webp" alt="魔法使之夜月白冰藍面板" width="440">
 
-獨立「推荐海报设置」管理 Emby／TMDB 來源、伺服器、帳號、金鑰與 TMDB 地區；通知在主頁只留可展開的一條摘要，性能資訊另設一級入口。Lucy 使用已確認的 v5 妝色／眼角／睫毛修正版，魔法使之夜背景移除宣傳文字。
+獨立「推荐海报设置」管理 Emby／TMDB 來源、伺服器、帳號、金鑰與 TMDB 地區；通知在主頁只留可展開的一條摘要，性能資訊另設一級入口。Lucy 夜之城以霓虹城市與冷色面板呼應角色；魔法使之夜採用無字星空花海背景。
 
 ## 海信單首頁、聚好看及調試控制
 
-Home 從其他 App、聚好看或 HDMI 回 Free My TV；原廠 HDMI 選單保留。回首頁時處理 Android 與 HDMI 畫面交接，避免訊號源畫面／Dolby Vision 與首頁重疊；不改全域 HDR、CEC 或校準。
+Home 從其他 App、聚好看或 HDMI 回 Free My TV；原廠 HDMI 選單保留。回首頁時交接至 Android 訊號源；保留全域 HDR、CEC 與校準設定。
 
 聚好看可選「按需啟用」：平常停用並強停，只在主動開啟時放出，回新桌面後再封鎖；保留原套件和資料。新安裝需自行選擇這個模式，也可恢復「始終可用」。
 
@@ -67,20 +67,12 @@ Home 從其他 App、聚好看或 HDMI 回 Free My TV；原廠 HDMI 選單保留
 - 頂部按鈕：Emby 帳號、調試、直播等可選擇是否顯示；天氣預設關閉，由新使用者設定自己的城市。
 - 安裝：現成 APK、完整修改來源、Mac 工具、一次性 Emby／TMDB 金鑰輸入頁、獨立首次安裝 Skill 與校驗值。Windows／Linux 自備官方 adb。
 
-## 橫向應用卡片與 1.8.1 曲線改善
+## 統一的橫向應用卡片
 
-首頁下方實機卡片沿用各 App 標誌元素，調整成統一比例。1.8.1 預先生成普通／選中像素尺寸，配合像素對齊，改善小尺寸曲線鋸齒。以下局部都是同一電視截圖，最近鄰放大 4 倍供檢查。
-
-**Clash：修改前 → 1.8.1**
-
-<img src="assets/hisense/icon-clash-before.png" alt="Clash 修改前" width="260"> <img src="assets/hisense/icon-clash-after.png" alt="Clash 1.8.1" width="260">
-
-**聚好看：修改前 → 1.8.1**
-
-<img src="assets/hisense/icon-stock-before.png" alt="聚好看修改前" width="260"> <img src="assets/hisense/icon-stock-after.png" alt="聚好看 1.8.1" width="260">
+首頁下方卡片沿用各 App 的標誌元素，以統一比例、獨立底色與清晰文字呈現。普通與選中狀態使用預先取樣、像素對齊的圖像；背景準備快取，保持導航流暢。
 
 ## 範圍與素材來源
 
-圖片中的片庫、進度和頭像僅是經擁有者允許的文件示例，不作為公開包預設資料分發。公開 APK 未在乾淨電視／U 模式實測；真機畫面來自同功能個人版。詳見 [版本驗證](HISENSE_RELEASE.md) 及 [首次安裝 Skill](../skills/hisense-uxs-freemytv-first-install/SKILL.md)。
+圖片中的片庫、進度和頭像僅是經擁有者允許的文件示例，不作為公開包預設資料分發。UXS 已有 M 模式調試與使用者確認的 U 模式日常使用經驗；真機畫面來自同功能個人版。公開 APK 尚未完成乾淨電視首次安裝驗證。詳見 [版本驗證](HISENSE_RELEASE.md) 及 [首次安裝 Skill](../skills/hisense-uxs-freemytv-first-install/SKILL.md)。
 
 角色插畫依使用者提供參考進行 AI 擴圖／改編，品牌標誌和影視海報屬各權利人；程式碼 MIT 不等於素材一概 MIT。見 [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) 和 [圖片處理紀錄](assets/hisense/provenance.json)。
