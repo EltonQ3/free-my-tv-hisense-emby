@@ -10,8 +10,6 @@ Android-specific prerelease. Package `io.freemytv`, versionCode `34`, versionNam
 
 The first public release of this fork combines the developed Hisense single-Home / optional stock-launcher gate, bidirectional debugging controls, per-user Emby recommendations and resume, optional normal-UI player account switching, native HDMI handling, six settings themes, adaptive app cards, stock indices, synthesized navigation sounds and configurable one-minute home screensaver. See [README](../README.md) and [feature gallery](FEATURES.md).
 
-Recent changes include the approved Lucy v5 makeup / eyelashes, text-free Witch on the Holy Night theme, top-button group fade to prevent quote flashes, and 1.8.1 off-thread app-card prefiltering at resting / focused pixel sizes.
-
 The published APK is the already verified sanitized binary. Publication updates documentation, attribution and packaging; it does not change the APK. The Public ZIP includes corresponding modified sources, installer tools and licenses; the first-install skill is a separate asset. The private recovery bundle, official Emby APK, private signing / pairing keys and runtime credentials are excluded.
 
 ## Completed local checks
@@ -31,15 +29,15 @@ GitHub build/test Actions run with `contents: read`, no private secrets and a th
 
 ## Hardware observations and limits
 
-Reference device: mainland Hisense UXS / MT9655 / Android 14, factory M mode. Functionally equivalent personal builds were used for hardware checks; the public APK has not been installed over that configured TV or tested on a clean TV.
+Reference device: mainland Hisense UXS / MT9655 / Android 14. Hardware experience includes factory M-mode development checks and U-mode daily use. On 2026-10-25, the owner confirmed that the TV had been used in U mode throughout the day. Functionally equivalent personal builds were used; this does not establish a clean-TV first installation of the public APK.
 
-Previous development verified original-color avatars, home profile selection, two-way official Emby 3.5.35 account switching through normal UI, and one user-confirmed resume from saved progress. Passwords / PINs remain manual. All accounts, formats, protected streams and combined account-switch-plus-playback paths were not exhaustively tested.
+Reference-device observations cover original-color avatars, home profile selection, two-way official Emby 3.5.35 account switching through normal UI, and one user-confirmed resume from saved progress. Passwords / PINs remain manual. All accounts, formats, protected streams and combined account-switch-plus-playback paths were not exhaustively tested.
 
 Single Home from apps / stock launcher / HDMI, stock-launcher opt-in gating, debug off/on and its prompt, one-minute screensaver and settings retention have reference-device observations. The Home routing and input-source handoff do not claim a global HDR / CEC setting change.
 
-1.8.0 checked the six-theme selector, approved Lucy and Mahoyo settings, notification / Home return and quote-flash regression. 1.8.1 checked app-card resting / focused states, prefiltered cache and Settings / Home return. Fresh 1.8.1 screenshots for this release use normal UI navigation and do not constitute new playback tests.
+The six-theme selector, themed settings panels, notification summary, app-card resting / focused states, and Settings / Home navigation have reference-device observations. The gallery contains 1.8.1 screenshots captured through normal UI navigation; screenshots do not constitute additional playback tests.
 
-U mode, other models / firmware, full factory-reset installation, every standby / AC boot scenario and a clean Public installation remain unverified. The app is not TV firmware, DRM remediation or a full-device backup. Overwriting an existing installation retains its private data; sanitization describes the distributed files.
+Other models / firmware, full factory-reset installation, every standby / AC boot scenario and a clean Public installation remain unverified. U-mode evidence is the owner-confirmed daily use on this UXS, not a claim of exhaustive coverage of every feature or playback format. The app is not TV firmware, DRM remediation or a full-device backup. Overwriting an existing installation retains its private data; sanitization describes the distributed files.
 
 ## Binary identity
 
