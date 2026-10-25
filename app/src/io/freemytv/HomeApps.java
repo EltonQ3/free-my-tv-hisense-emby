@@ -48,8 +48,8 @@ import java.util.regex.Pattern;
  *
  * On the home shelf, each app is its colored logo on a dark card: the official logo in assets/logos/<key>.png
  * (downloaded from Wikimedia Commons by tools/logos.py) or, without one, the logo lifted from the app's TV art (the
- * Android TV "banner"), saved to disk after the first time. In "All Apps", 16:9 cards with the whole TV art (or the
- * icon on a dark card). Shortcuts (live TV, inputs, All Apps, settings) are icon buttons.
+ * Android TV "banner"), saved to disk after the first time. In "All Apps", 16:9 cards with the whole TV art or a brand card using the
+ * original app motif. Shortcuts (live TV, inputs, All Apps, settings) are icon buttons.
  */
 final class HomeApps {
     private HomeApps() {}
@@ -57,6 +57,8 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    static final int EMBY_PROFILE = 8;
+    static final int DEBUG_SETTINGS = 9;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -80,6 +82,10 @@ final class HomeApps {
      * (YouTube); empty = the art's colors as they are. Last, a visual size tweak for the logo. Edit freely.
      */
     private static final String[][] SHELF = {
+        {"juhaokan", "聚好看", "com.jamdeo.tv.vod", "169FBC", "", "1"},
+        {"emby", "Emby", "com.mb.android", "52B54B", "", "1"},
+        {"hisensemedia", "本地媒体", "com.jamdeo.tv.mediacenter", "5C8CD6", "", "1"},
+        {"hisensecast", "Hi投屏", "com.hisense.multiscreen.screenhelper", "16A4D8", "", "1"},
         {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
         {"youtube", "YouTube", "com.google.android.youtube.tv", "FF0033", "play", "1"},
         {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
@@ -97,7 +103,7 @@ final class HomeApps {
     static final int MAX_SHELF = 8;
     /** Live TV apps of some brands (the antenna's channels open through the standard Android request first). */
     static final String[] LIVE_TV_APPS = {"com.tcl.tv", "com.google.android.tv", "com.mediatek.wwtv.tvcenter", "com.sony.dtv.tvx",
-            "com.smartdevice.livetv", "com.mediatek.tv.oneworld.tvcenter"};
+            "com.smartdevice.livetv", "com.mediatek.tv.oneworld.tvcenter", "com.jamdeo.tv.livetv"};
     /** Kept out of "All Apps" (only hidden, still installed). Add the ones your TV shows that you never use. */
     private static final Set<String> HIDDEN = new HashSet<>(java.util.Arrays.asList(
             "com.google.android.play.games",        // Google Play Games
@@ -143,7 +149,7 @@ final class HomeApps {
             } else {
                 it.key = d[0];
                 it.label = d[1];
-                it.logo = shelfLogo(c, d[0], d[2], d[4], extract);
+                if (!AppArtwork.supports(pkg)) it.logo = shelfLogo(c, d[0], d[2], d[4], extract);
                 if (it.logo == null) it.tile = appTile(c, d[0], d[2], 0xFF000000 | Integer.parseInt(d[3], 16));
                 if (it.logo != null) it.logoInk = ink(it.logo);
                 it.logoDark = ownLogoCached(c, d[0] + "-dark");
@@ -187,16 +193,19 @@ final class HomeApps {
 
     // MARK: - Top buttons (the round ones at the top right)
 
-    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings";
-    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS, TOP_SETTINGS));
-    static final int MAX_TOP = TOP_DEFAULT.size();
+    static final String TOP_LIVE = "live", TOP_ACCOUNT = "account", TOP_DEBUG = "debug", TOP_INPUTS = "inputs", TOP_SETTINGS = "settings";
+    private static final List<String> TOP_SUPPORTED = Collections.unmodifiableList(java.util.Arrays.asList(TOP_ACCOUNT, TOP_DEBUG, TOP_INPUTS, TOP_SETTINGS, TOP_LIVE));
+    static final int MAX_TOP = 5;
 
-    /** The keys of the top buttons, in order (Settings > Top Buttons; by default Live TV, HDMI Inputs, Settings). */
+    /** Account and live TV are independent; live TV remains available but off by default in this edition. */
     static List<String> topButtonKeys() {
         List<String> saved = Prefs.topButtons();
-        if (saved == null) return TOP_DEFAULT;
+        if (saved == null) return Config.EMBY_ONLY
+                ? (HomeMode.keepHisenseApps() ? java.util.Arrays.asList(TOP_ACCOUNT, TOP_DEBUG, TOP_INPUTS, TOP_SETTINGS)
+                : java.util.Arrays.asList(TOP_ACCOUNT, TOP_INPUTS, TOP_SETTINGS))
+                : java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS, TOP_SETTINGS);
         List<String> keys = new ArrayList<>();
-        for (String key : saved) if (TOP_DEFAULT.contains(key) && !keys.contains(key)) keys.add(key);
+        for (String key : saved) if (TOP_SUPPORTED.contains(key) && !keys.contains(key)) keys.add(key);
         return keys;
     }
 
@@ -209,8 +218,10 @@ final class HomeApps {
 
     private static Item topButton(String key) {
         switch (key) {
+            case TOP_ACCOUNT: return action(EMBY_PROFILE, TOP_ACCOUNT, Ui.tr("Emby account"), "");
             case TOP_LIVE: return action(LIVE_TV, TOP_LIVE, Ui.tr("light|Live TV"), "live_tv");
             case TOP_INPUTS: return action(INPUTS, TOP_INPUTS, Ui.tr("HDMI Inputs"), "hdmi");
+            case TOP_DEBUG: return action(DEBUG_SETTINGS, TOP_DEBUG, DebugControls.label(), DebugControls.symbol());
             default: return action(SETTINGS, TOP_SETTINGS, Ui.tr("light|Settings"), "settings");
         }
     }
@@ -218,7 +229,7 @@ final class HomeApps {
     /** What can go in the top buttons, as {key, name}. */
     static List<String[]> topCandidates() {
         List<String[]> out = new ArrayList<>();
-        for (String key : TOP_DEFAULT) out.add(new String[] {key, topButton(key).label});
+        for (String key : TOP_SUPPORTED) out.add(new String[] {key, topButton(key).label});
         return out;
     }
 
@@ -258,6 +269,8 @@ final class HomeApps {
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
         items.add(shortcut(SETTINGS, "settings", Ui.tr("Home Settings"), "settings"));
         items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "tv_settings"));
+        if (HomeMode.keepHisenseApps())
+            items.add(shortcut(DEBUG_SETTINGS, "debug-settings", DebugControls.label(), DebugControls.symbol()));
         return items;
     }
 
@@ -282,7 +295,25 @@ final class HomeApps {
         List<Item> items = new ArrayList<>();
         if (liveTv(c) != null) items.add(shortcut(LIVE_TV, "live", Ui.tr("Live TV"), "tv"));
         items.addAll(inputs(c, true));
+        // Mainland Hisense firmware keeps its HDMI/CEC inventory outside Android's TV Input Framework.
+        if (items.isEmpty() && HomeMode.keepHisenseApps()) {
+            items.add(shortcut(INPUTS, "hisense-inputs", Ui.tr("HDMI Inputs"), "hdmi"));
+        }
         return items;
+    }
+
+    /** Let the vendor's source picker handle physical ports and devices routed through a soundbar. */
+    static boolean openNativeInputs(Context c) {
+        if (!HomeMode.keepHisenseApps()) return false;
+        Intent intent = new Intent("com.hisense.tv.start_inputs")
+                .setComponent(new ComponentName("com.hisense.tv.inputs", "com.hisense.tv.InputsUIService"));
+        try {
+            // The vendor's service calls startForeground itself; a background start is rejected after it idles.
+            return c.startForegroundService(intent) != null;
+        } catch (RuntimeException e) {
+            AppLog.w("native source picker unavailable");
+            return false;
+        }
     }
 
     private static List<Item> inputs(Context c) {
@@ -389,6 +420,14 @@ final class HomeApps {
             it.tile = appTile(c, null, pkg, 0);
             items.add(it);
         }
+        // The UXS stock desktop declares HOME but no normal launcher category.
+        String stock = "com.jamdeo.tv.vod";
+        if (HomeMode.keepHisenseApps() && seen.add(stock)) {
+            Item it = new Item();
+            it.kind = APP; it.pkg = stock; it.key = "juhaokan"; it.label = "聚好看";
+            it.tile = appTile(c, "juhaokan", stock, 0xFF169FBC);
+            items.add(it);
+        }
         Collections.sort(items, (a, b) -> a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT)));
         synchronized (HomeApps.class) {
             TILES.keySet().removeIf(k -> k.contains(".") && !seen.contains(k));
@@ -399,12 +438,16 @@ final class HomeApps {
 
     private static Item special(Context c, int kind, String key, String label, String symbol) {
         Item it = shortcut(kind, key, label, symbol);
-        it.tile = symbolTile(c, key, symbol);
+        it.tile = "freemytv-settings".equals(key) ? appTile(c, key, c.getPackageName(), 0) : symbolTile(c, key, symbol);
         return it;
     }
 
     /** Opens the item with the system zoom transition growing out of the card (the app starts opening right away). */
     static boolean open(Activity a, Item it, View from, int x, int y, int w, int h) {
+        if (it.kind == APP && "com.jamdeo.tv.vod".equals(it.pkg) && StockHomeGate.enabled(a)) {
+            StockHomeGate.open(a);
+            return true;
+        }
         Intent intent, plain = null;   // plain: the app's own home, when it won't take the title's address
         switch (it.kind) {
             case APP:
@@ -418,6 +461,8 @@ final class HomeApps {
             case LIVE_TV:
                 intent = liveTv(a);
                 break;
+            case EMBY_PROFILE:
+                return false;   // The home opens its in-place account menu.
             case INPUT:
                 intent = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(it.inputId));
                 break;
@@ -427,12 +472,16 @@ final class HomeApps {
             case ANDROID_SETTINGS:
                 intent = new Intent(Settings.ACTION_SETTINGS);
                 break;
+            case DEBUG_SETTINGS:
+                return false; // The home handles this button in place.
             default:
                 return false;
         }
         if (intent == null) return false;
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
+            if (HomeMode.keepHisenseApps() && "com.jamdeo.tv.vod".equals(it.pkg)
+                    && !HisenseHomeEntry.allow(a)) return false;
             a.startActivity(intent, ActivityOptions.makeScaleUpAnimation(from, x, y, Math.max(w, 1), Math.max(h, 1)).toBundle());
             return true;
         } catch (ActivityNotFoundException | SecurityException e) {
@@ -511,13 +560,18 @@ final class HomeApps {
         Intent phone = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
         for (ResolveInfo ri : pm.queryIntentActivities(phone, 0)) {
             String pkg = ri.activityInfo.packageName;
-            if ((ri.activityInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0 || !seen.add(pkg)) continue;
+            if ((!HomeMode.keepHisenseApps() && (ri.activityInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0)
+                    || !seen.add(pkg)) continue;
             out.add(new String[] {pkg, String.valueOf(ri.loadLabel(pm))});
         }
         return out;
     }
 
     static Intent launchIntent(PackageManager pm, String pkg) {
+        if (HomeMode.keepHisenseApps() && "com.jamdeo.tv.vod".equals(pkg)) {
+            return new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                    .setComponent(ComponentName.unflattenFromString(HomeMode.HISENSE_HOME));
+        }
         Intent intent = pm.getLeanbackLaunchIntentForPackage(pkg);
         return intent != null ? intent : pm.getLaunchIntentForPackage(pkg);
     }
@@ -810,8 +864,9 @@ final class HomeApps {
     private static synchronized Bitmap appTile(Context c, String key, String pkg, int brand) {
         String cacheKey = key != null ? key : pkg;
         if (TILES.containsKey(cacheKey)) return TILES.get(cacheKey);
-        Bitmap logo = key == null ? null : ownLogo(c, key);
-        Bitmap tile = logo != null ? logoTile(logo, brand) : bannerTile(c, pkg);
+        Bitmap tile = AppArtwork.tile(c, pkg, TILE_W, TILE_H);
+        Bitmap logo = tile == null && key != null ? ownLogo(c, key) : null;
+        if (tile == null) tile = logo != null ? logoTile(logo, brand) : bannerTile(c, pkg);
         if (tile == null) tile = iconTile(c, pkg);
         tile.setHasMipMap(true);
         TILES.put(cacheKey, tile);
@@ -841,47 +896,9 @@ final class HomeApps {
         return b;
     }
 
-    /** No banner: the app's icon (in its proper shape, with some margin) on a dark card. */
+    /** No TV art: a full brand card using the app's own colored mark and readable name. */
     private static Bitmap iconTile(Context c, String pkg) {
-        Bitmap b = darkTile();
-        Canvas canvas = new Canvas(b);
-        Drawable icon = null;
-        try {
-            PackageManager pm = c.getPackageManager();
-            ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
-            if (ai.icon != 0) {
-                try {
-                    icon = pm.getResourcesForApplication(ai).getDrawableForDensity(ai.icon, DisplayMetrics.DENSITY_XXXHIGH, null);
-                } catch (PackageManager.NameNotFoundException | RuntimeException ignored) {
-                }
-            }
-            if (icon == null) icon = pm.getApplicationIcon(ai);
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-        if (icon == null) return b;
-        int size = Math.round(TILE_H * 0.56f);
-        float left = (TILE_W - size) / 2f, top = (TILE_H - size) / 2f;
-        if (icon instanceof AdaptiveIconDrawable) {
-            // Adaptive icon: the layers clipped to a squircle, like an Apple icon.
-            AdaptiveIconDrawable a = (AdaptiveIconDrawable) icon;
-            Path clip = new Path();
-            clip.addRoundRect(new RectF(left, top, left + size, top + size), size * 0.2237f, size * 0.2237f, Path.Direction.CW);
-            canvas.save();
-            canvas.clipPath(clip);
-            int pad = size / 4;
-            for (Drawable layer : new Drawable[] {a.getBackground(), a.getForeground()}) {
-                if (layer == null) continue;
-                layer.setBounds(Math.round(left) - pad, Math.round(top) - pad, Math.round(left) + size + pad, Math.round(top) + size + pad);
-                layer.draw(canvas);
-            }
-            canvas.restore();
-        } else {
-            // Legacy icon (a free-form drawing with transparency): smaller, no frame.
-            int s = Math.round(TILE_H * 0.46f);
-            icon.setBounds((TILE_W - s) / 2, (TILE_H - s) / 2, (TILE_W + s) / 2, (TILE_H + s) / 2);
-            icon.draw(canvas);
-        }
-        return b;
+        return AppArtwork.fallback(c, pkg, TILE_W, TILE_H);
     }
 
     /** Settings and the like: the icon in white on a dark card. */

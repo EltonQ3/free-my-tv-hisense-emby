@@ -46,12 +46,29 @@ final class Symbols {
     }
 
     static float width(Context c, String name, float pointSize) {
+        if ("debug_on".equals(name) || "debug_off".equals(name)) return pointSize * 1.1f;
         Bitmap b = get(c, name);
         return b == null ? 0 : b.getWidth() * pointSize / PX_PER_POINT;
     }
 
     /** Draws centered at (cx, cy) in the given color (lighter, translucent parts of the symbol stay lighter). */
     static void draw(Context c, Canvas canvas, String name, float cx, float cy, float pointSize, int color) {
+        if ("debug_on".equals(name) || "debug_off".equals(name)) {
+            synchronized (PAINT) {
+                boolean on = "debug_on".equals(name);
+                float w = pointSize * 1.1f, h = pointSize * .64f, radius = h / 2;
+                RECT.set(cx - w / 2, cy - radius, cx + w / 2, cy + radius);
+                if (on) {
+                    PAINT.setStyle(Paint.Style.FILL); PAINT.setColor(0xff248a4a);
+                    canvas.drawRoundRect(RECT, radius, radius, PAINT);
+                }
+                PAINT.setStyle(Paint.Style.STROKE); PAINT.setStrokeWidth(pointSize * .075f); PAINT.setColor(color);
+                canvas.drawRoundRect(RECT, radius, radius, PAINT);
+                PAINT.setStyle(Paint.Style.FILL); PAINT.setColor(on ? 0xffffffff : color);
+                canvas.drawCircle(cx + (on ? 1 : -1) * (w - h) / 2, cy, radius * .66f, PAINT);
+            }
+            return;
+        }
         Bitmap b = get(c, name);
         if (b == null) return;
         synchronized (PAINT) {   // card loading (another thread) also draws symbols

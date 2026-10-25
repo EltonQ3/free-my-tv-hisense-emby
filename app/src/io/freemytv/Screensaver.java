@@ -4,8 +4,8 @@ import android.service.dreams.DreamService;
 
 /**
  * The Free My TV screensaver (enabled in Free My TV mode via `settings put secure screensaver_components`). The system
- * still decides when it starts and when the TV turns off (e.g. after 10 min idle, then 2 h later), as before: the app
- * doesn't change those timings. Any key exits.
+ * decides when it starts. HomeActivity also reuses DreamView with its own adjustable inactivity timer, because
+ * some TV firmware ignores the system dream timer. The separate standby timeout stays as it was. Any key exits.
  */
 public class Screensaver extends DreamService {
     private DreamView view;

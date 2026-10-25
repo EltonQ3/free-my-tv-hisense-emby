@@ -1,247 +1,91 @@
-<div align="center">
+# Free My TV · Hisense TV CN MT9655 / Emby Edition
 
-<img src="docs/assets/icon-512.png" width="96" alt="">
+針對中國大陸版、搭載 **MediaTek MT9655** 的 Hisense TV 改造的 **Emby 個人片庫桌面**。基於 [simbasjungles/free-my-tv](https://github.com/simbasjungles/free-my-tv)，保留原版設計基礎、原廠首頁還原與崩潰保護，加入按用戶續播、聚好看按需開啟及六種設定頁主題。
 
-# Free My TV
+**適配範圍：本改版面向中國大陸版、搭載 MediaTek MT9655 的 Hisense TV；目前僅測試海信 UXS 可用性。其他 MT9655 型號、其他晶片、其他地區版本及韌體未驗證，不能視為所有海信電視均已適配。**
 
-**A fast, ad-free home screen for Google TV, LG and Samsung TVs.**
+**Unofficial Android fork · 非官方 Android 專用測試版。** 與 Free My TV 上游、海信、Emby、Apple 及任何串流服務無隸屬或背書關係。這是桌面應用，不是韌體；新增原生功能未移植至 LG webOS／Samsung Tizen。
 
-Trending picks from your own apps, the weather at a glance, and a look that follows the sunset.<br>
-Open source. Built with Claude Code. One button to undo.
+[下載 1.8.1 公開包](https://github.com/EltonQ3/free-my-tv-hisense-emby/releases/tag/hisense-emby-v1.8.1) · [首次安裝 Skill](https://github.com/EltonQ3/free-my-tv-hisense-emby/blob/hisense-emby/skills/hisense-uxs-freemytv-first-install/SKILL.md) · [圖文導覽](docs/FEATURES.md) · [測試與限制](docs/HISENSE_RELEASE.md) · [上游發布要求](UPSTREAM.md) · [MIT](LICENSE)
 
-[**freemytv.io**](https://freemytv.io) · [Install](#install) · [LG TVs](#lg-tvs-webos) · [Samsung TVs](#samsung-tvs-tizen) · [Any TV](#any-tv) · [Make it yours](#make-it-yours)
+![1.8.1 Emby 繼續播放、海報牆、頭像與適配應用卡片](docs/assets/hisense/home-emby-181.webp)
 
-<img src=".github/preview.webp" width="880" alt="The Free My TV home screen: a glass shelf of apps, trending picks, and a drawer with the weather and crypto prices">
+*1.8.1 最新實機首頁；下方圖文導覽同樣使用本次補拍畫面。經擁有者允許展示片庫、觀看進度與頭像，不顯示真實帳號名稱或連接資料。*
 
-</div>
+## 相對原版的 Features
 
-## What you get
+這是此 fork 的首次公開發行，以下介紹整個海信／Emby 改版的完整功能，並非只有 1.8.1 的增量修正。
 
-- **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
-- **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
-- **Trending, not sponsored.** Three fresh picks every hour from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
-- **Weather and markets, one press away.** The hour-by-hour forecast, sunrise and sunset, and live crypto prices.
-- **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
-- **A screensaver to match.** Full-screen photos of the picks with a big glass clock.
-- **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14.</sub>
-- **Set up on the TV.** Language, your city, temperature, theme, the weather and prices cards, which coins, and the apps on the shelf, in Free My TV's own settings.
-- **Safe.** No root. Nothing is uninstalled. One button brings back the factory home screen.
+- **Emby 個人推薦與續播**：繼續播放、隨機推薦、新到電影、新上劇四個分頁。點海報重新查詢所選用戶進度，明確傳入續播位置；劇集選該用戶應繼續的一集，避免誤播最新入庫集數或從頭開始。
+- **首頁換 Emby 帳號**：原色頭像、同風格下拉選單與展開動畫。選用「Emby 账号遥控」無障礙服務，可操作官方播放器的正常介面同步帳號；密碼／PIN 仍手動輸入，核對實際用戶後才交接播放。
+- **連續海報牆**：每類最多 10 項，首張橫圖，後續豎海報可向右逐項滑動。海報優先於劇內截圖，深色背景跟隨焦點海報的橫圖。右上時鐘只在海報模式顯示。
+- **桌面自行更新**：首頁停留每 30 分鐘同步，返回首頁更新進度；焦點離開海報且 10 秒無操作，依序切換四個分頁。毋須電腦常駐。
+- **單首頁與聚好看按需開啟**：Home 從 App、聚好看或 HDMI 回 Free My TV。可選擇平常封鎖聚好看，主動開啟時放出，回桌面後重新停用／強停；原廠套件與資料保留。已取消先前黑色過場。
+- **首頁雙向調試按鈕**：頂部可選按鈕與下方快捷方式均可開／關，僅內部深綠顯示已開啟。關閉時點聚好看會出現同風格提示窗，啟用調試成功後自動收起並繼續。參考韌體只需開發者模式＋USB 調試，不操作獨立無線調試開關。
+- **推薦海報獨立設定**：切換 Emby／TMDB 來源；管理自己的伺服器、帳號、金鑰、更新偏好及 TMDB 地區。長金鑰可從電腦的一次性本機頁輸入；TMDB 預設香港 HK，無預置金鑰。
+- **六種設定頁主題**：Chiikawa、經典、Fate 誓約、Fate 暮光、Lucy 夜之城、魔法使之夜。每個插畫主題配有自己的面板色彩；通知縮成可展開摘要，性能資訊另設一級入口。
+- **海信訊號源適配**：原廠 HDMI 入口與回首頁時的 Android 訊號源交接，處理 HDMI 畫面／Dolby Vision 與桌面的重疊；保留 CEC、HDR、音畫及校準服務。
+- **應用橫卡與曲線改善**：媒體中心、Clash、聚好看等橫向卡片沿用原標誌元素；1.8.1 在背景預先生成普通／選中尺寸，配合像素對齊，改善縮小顯示的鋸齒。
+- **首頁小工具與聲音**：納斯達克綜合指數 IXIC、恆生科技、滬深 300，使用免費騰訊 HTTPS 行情與來源時間；移動／確認／返回三種原創合成音效。屏保預設 1 分鐘，可選 1／2／5／10／15／30 分鐘。
+- **可分享的脫敏發行**：不含私人伺服器、帳號、API 金鑰、城市、位置、頭像、片庫、登入、配對或簽名私鑰。天氣預設關閉；Emby 尚未連接。公開包不附第三方 App APK。
 
-## Install
+![魔法使之夜的推薦設定入口與淺色面板](docs/assets/hisense/settings-mahoyo.webp)
 
-About ten minutes. You need a Google TV or Android TV (Android 8 or newer) and a computer on the same Wi-Fi.
+*1.8.1 設定頁實機畫面裁切；展示獨立推薦海報設定與主題面板。設定頁美術與首頁明暗是兩個選項。更多主題與圖示比較見[圖文導覽](docs/FEATURES.md)。*
 
-### The easy way: an AI assistant
+## 下載與第一次安裝
 
-1. **On the TV**, turn on developer mode: Settings → System → About → press *Android TV OS build* 7 times. Then Settings → System → Developer options → turn on **USB debugging**. Write down the TV's IP address (Settings → Network & Internet).
-2. **On your computer**, open an AI coding assistant ([Claude Code](https://claude.com/claude-code), Codex or Antigravity) and say:
-   > Install Free My TV (github.com/simbasjungles/free-my-tv) on my TV at 192.168.1.50. I live in Lisbon.
+版本 **1.8.1-uxs.20261025-public**，package `io.freemytv`，versionCode **34**。最低 Android 8／API 26；實際參考機為 **海信 UXS／MT9655／Android 14／工廠 M 模式**。其他海信型號、韌體與 U 模式未實測。
 
-   It downloads the code, installs the tools it needs, builds the app and puts it on your TV, and asks before anything important. Swap in your TV's IP and your city.
-3. **On the TV**, open *Free My TV* → *Home Screen* → *Free My TV*. That's when the TV asks *Allow USB debugging?* for Free My TV: tick *Always allow* and accept.
+1. 從 [Release](https://github.com/EltonQ3/free-my-tv-hisense-emby/releases/tag/hisense-emby-v1.8.1) 下載 `FreeMyTV-UXS-1.8.1-20261025-Public.zip`、ZIP 外的 `Public-First-Install-SKILL.md` 與 `Public-SHA256SUMS.txt`，核對雜湊後完整解壓。
+2. 電視與電腦在可互通的區域網路。手動開啟開發者模式及 USB 調試；Mac 執行「安裝桌面.command」，在電視允許調試。需要 Python 3.9+；現成 APK 不需重新編譯。
+3. 工具會另問是否授予首頁開關所需的 `WRITE_SECURE_SETTINGS`。此權限定義較廣，本版按鈕只寫開發者模式與 USB 調試；拒絕也能手動從系統管理調試。
+4. 在電視 Free My TV 設定選「主屏幕 → Free My TV」，允許應用自身的本機調試，開啟「Free My TV」無障礙服務，再用實體 Home 驗證。
+5. 需要 Emby 時，另裝可信來源的官方 Emby 電視版，正常登入。設定 → 推荐海报设置 → Emby，填自己的伺服器與金鑰並選帳號；長金鑰可用「電腦設定Emby.command」。需要自動同步播放器帳號時再開「Emby 账号遥控」。
+6. 需要聚好看按需封鎖時，設定 → 主屏幕设置 → 聚好看 → 按需启用。全新安裝需明確選擇，並非安裝後自動凍結。
 
-### The manual way
+Windows／Linux 自備官方 Android platform-tools，執行 `python3 tools/restore.py`。完整首次安裝、TMDB、主題、聚好看、排錯與恢復流程見 [SKILL.md](https://github.com/EltonQ3/free-my-tv-hisense-emby/blob/hisense-emby/skills/hisense-uxs-freemytv-first-install/SKILL.md)。
 
-1. **On the TV**, do step 1 above.
-2. **Tools:** a JDK (17+), the Android SDK command-line tools (build-tools 34, platform android-34) and adb. On a Mac:
-   ```bash
-   brew install --cask temurin android-commandlinetools android-platform-tools
-   sdkmanager "build-tools;34.0.0" "platforms;android-34"
-   ```
-   On Linux, get OpenJDK 17, Android's command-line tools and adb from your package manager, then run the same `sdkmanager` line. On Windows, use Git Bash (which Claude Code uses there) or WSL.
-3. **Build:**
-   ```bash
-   ./build.sh
-   ```
-   The first run creates `config.properties`. Set your city and your [TMDB key](#the-tmdb-key) there, then run it again.
-4. **Install:**
-   ```bash
-   adb connect 192.168.1.50:5555
-   adb install -r FreeMyTV.apk
-   ```
-   On TCL TVs, also let it run in the background (TCL blocks it by default, and the switch never starts):
-   ```bash
-   adb shell "appops set io.freemytv AUTO_START allow || appops set io.freemytv APP_AUTO_START allow"
-   ```
-5. **On the TV**, open *Free My TV* → *Home Screen* → *Free My TV*. The TV asks *Allow USB debugging?* once more, now for Free My TV itself: tick *Always allow* and accept.
+**退回原版或卸載前**：先開調試，在設定 → 主屏幕 → 原版完成還原，確認聚好看可用，再考慮卸載。只點聚好看卡片不等於完整還原。覆蓋安裝會保留目標電視既有資料，脫敏包不會替你清除它。
 
-## LG TVs (webOS)
+## 權限、隱私與相容性
 
-The same home screen as an LG app: the picks, the glass shelf with your apps, the drawer with inputs, weather and prices, day and night, Home Settings and the shelf editor. It installs through LG's own Developer Mode, with nothing rooted or changed on the TV. LG's home screen stays where it is, and Free My TV is one press of a number key away.
+Emby 海報與帳號來自你自己的伺服器。官方播放器仍需正常登入並具備播放權限；已測帳號介面為 `com.mb.android` **3.5.35**，不代表目前最新版本。自動切換只在明確操作後處理該播放器可見介面，最多 10 個動作／60 秒；遇密碼、PIN、歧義或驗證失敗即停止，不讀取播放器私人憑證。實際連線與用戶確認後才傳送續播位置，查詢失敗不退回從頭播放。
 
-You need an LG TV (webOS 3 or newer) and a computer on the same Wi-Fi, with Python 3.
+區域網路 Emby HTTP 僅接受驗證的私有／回環地址；外網需有效 HTTPS。憑證留在電視應用私有儲存，TMDB 金鑰使用 Android Keystore 加密；不略過 TLS 驗證、不跟隨認證重導。電腦輸入頁只監聽 `127.0.0.1`，隨機一次性網址、15 分鐘失效，不把金鑰寫進電腦檔案或命令列參數。
 
-1. **On the TV**, open the LG Content Store and install **Developer Mode**. Sign in with a free [LG developer account](https://webostv.developer.lge.com), turn on **Dev Mode Status** (the TV restarts), then turn on **Key Server**. Write down the IP address and the passphrase it shows.
-2. **On your computer**, get the code and build. `config.properties` works as for Google TV (your city, your [TMDB key](#the-tmdb-key)):
-   ```bash
-   git clone https://github.com/simbasjungles/free-my-tv && cd free-my-tv
-   python3 webos/build.py
-   ```
-3. **Install.** The first time, it asks for the TV's passphrase; updates don't:
-   ```bash
-   python3 webos/install.py 192.168.1.50
-   ```
-4. **On the TV**, while Free My TV is open, hold a number key on the remote. From then on, that key opens it from anywhere.
+按需啟用聚好看只管理 `com.jamdeo.tv.vod`，開啟與重新封鎖時需要可用本機調試。`WRITE_SECURE_SETTINGS` 與無障礙均由安裝者選擇授予；不更改工廠 M／U 模式。選用功能會連線你設定的 Emby、TMDB／Watchmode、Open-Meteo 或騰訊行情。行情時效與可用性依資料源，並非交易級實時保證。
 
-With an AI assistant, say *"Install Free My TV (github.com/simbasjungles/free-my-tv) on my LG TV at 192.168.1.50. I live in Lisbon."* It builds the app and hands you the install command, so you type the passphrase yourself.
+同套件更新需相同簽名。此 fork 發行 APK 使用本分支穩定簽名，**不是上游官方簽名**；從上游或自行編譯切換時先核對，不能直接覆蓋不同簽名。私人簽名金鑰不公開。角色插畫、商標與海報不因程式採 MIT 而變成 MIT 素材，請保留[素材來源與權利說明](THIRD_PARTY_NOTICES.md)。
 
-Developer Mode lasts about 40 days: open the Developer Mode app now and then and press **EXTEND**. To remove Free My TV, run `python3 webos/install.py 192.168.1.50 --uninstall`.
+## 原始碼與驗證
 
-## Samsung TVs (Tizen)
+```sh
+git clone --branch hisense-emby https://github.com/EltonQ3/free-my-tv-hisense-emby.git
+cd free-my-tv-hisense-emby
+cp config.example.properties config.properties
+bash tools/check.sh
+bash tools/check-debug.sh
+bash tools/check-stock-home.sh
+bash tools/check-hisense-home.sh
+bash tools/check-emby-account.sh
+bash tools/check-emby-playback.sh
+```
 
-The same home screen as a Samsung app, with everything the LG one has: the picks, the shelf, the drawer with the inputs, the weather and the prices, day and night, and its own settings. It installs through Samsung's own Developer Mode, with nothing rooted or changed on the TV, and Samsung's home screen stays where it is.
+需要 JDK 17、Android build-tools 34／android-34、Python 3 與 Node.js。沿用上游無 Gradle、只用 Android SDK 的 Java 8 建置。`config.properties`、金鑰與輸出不提交；`emby_host=localhost` 是啟用 Emby 版的通用編譯標記，不是可用片庫。
 
-You need a Samsung TV from 2017 or newer (Tizen 3+) and a computer on the same Wi-Fi.
+`tools/check.sh` 保留 Android、翻譯、webOS／Tizen 通用封裝及 ES5 檢查。額外策略檢查覆蓋調試 118、聚好看 14、Home 20、帳號 59 項斷言，另有播放解析、隔離、傳輸及交接模擬測試。CI 僅讀取原始碼、使用臨時簽名，不提供私人金鑰；網站部署停用。
 
-1. **On the TV**, open **Apps** and type `1 2 3 4 5` on the remote. Turn **Developer mode** on, type your computer's IP address in **Host PC IP**, and restart the TV.
-2. **On your computer**, download [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller/releases/latest), the community's installer for Samsung TVs, open it and connect to your TV.
-3. **Install from GitHub:** type `simbasjungles/free-my-tv`. On 2023 and newer TVs it asks you to sign in to your Samsung account once, to sign the app for your TV.
-4. **Straight to it:** in the TV's settings, under Start Screen Options, turn on **Autorun Last App**: the TV turns on into Free My TV.
+同功能個人版已有 UXS 真機操作經驗；使用者曾確認一部影片從原進度續播。1.8.0 驗證六主題、設定／Home 返回與頂欄行情閃現修正；1.8.1 驗證圖示普通／選中狀態及快取。**公開 APK 未在乾淨電視或 U 模式實測**；帳號、所有格式、冷啟動與恢復原廠情境未全面驗證。詳細結果見[版本紀錄](docs/HISENSE_RELEASE.md)。
 
-This build takes your city from the TV's time zone. For your exact city and the trending picks, build it with your own `config.properties` and [TMDB key](#the-tmdb-key): open the folder in Claude Code and say *"Install Free My TV on my Samsung TV at 192.168.1.50. I live in Lisbon."* It sets up Samsung's tools, and on 2023 and newer TVs you sign in to your Samsung account in the browser to make the certificate. Your signed build installs with `python3 tizen/install.py 192.168.1.50`, which needs only Python: no Tizen Studio, and no Rosetta on Apple Silicon Macs.
+## 上游、授權與致謝
 
-## Settings
+Free My TV 由 [Free My TV contributors](https://github.com/simbasjungles/free-my-tv) 開發。保留完整 [MIT LICENSE](LICENSE)、原始歷史及[基線 README](docs/UPSTREAM_README.md)；本版修改基線為 `4d739516379976e4cc256e4106f3680d6bb94da8`。實際 fork 關係由 GitHub 保留，`main` 保持上游快照，`hisense-emby` 是專用分支。上游要求與本 Android 發布範圍的差異見 [UPSTREAM.md](UPSTREAM.md)。
 
-The first values come from `config.properties`, created by the first build (Google TV, LG and Samsung use the same file). Most of them can also be changed on the TV, in *Free My TV* → *Home Settings*, and the TV's choice wins:
+- 上游以 [Claude Code](https://claude.com/claude-code) 開發；本 fork 的設備適配與整理使用 Codex。
+- LG 研究：[danielthejoker18/FreeMyTvWebOS](https://github.com/danielthejoker18/FreeMyTvWebOS)（MIT）；Samsung 安裝：[reisxd/TizenBrewInstaller](https://github.com/reisxd/TizenBrewInstaller)。
+- Inter（OFL）、Material Symbols（Apache 2.0）、保留的 cryptocurrency-icons／Simple Icons（CC0），完整聲明見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+- 天氣 [Open-Meteo](https://open-meteo.com/)（CC BY 4.0）；指數為騰訊公開行情；選用連結為 Watchmode。本產品使用 TMDB API，但不受 TMDB 背書或認證。
+- 三種聲音為原創合成，不含 Apple TV 原音或手機外錄。角色、插畫、App 名稱及商標歸各權利人；主題是依使用者提供參考所作的 AI 擴圖／改編，非官方授權主題。
 
-| Key | What it does | Default |
-|---|---|---|
-| `tmdb_key` | Your free TMDB key, for the picks | empty |
-| `tmdb_region` | Your country (two letters): which titles are on which app | `US` |
-| `watchmode_key` | Optional, free [Watchmode](https://api.watchmode.com/) key: a pick opens the title's page in its app | empty |
-| `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
-| `city` | The name on the weather card | `Weather` |
-| `hide_animation` | Leave cartoons and anime out of the picks | `false` |
-| `language` | `auto` (follows the TV), or a language with a [translation](#translations) (`en`, `pt`, `es`, `de`, `ru`, `fr`, `ja`…) | `auto` |
-| `show_crypto` | Show Binance crypto prices on home and screensaver | `true` |
-| `currency` | Crypto prices in `USD`, `EUR`, `BRL`… | `USD` |
-| `temperature` | `C`, `F` or `auto` | `auto` |
-| `disable_assistant` | Also turn off Google Assistant | `false` |
-| `hide_services` | Streaming services to leave out of the picks even when their app is on the TV (`netflix`, `prime`, `disney`…), comma separated; for apps the TV ships that you don't subscribe to. Google TV only | empty |
-| `hide_apps` | Apps to leave out of the shelf, All Apps and the picks, by id or name (part of it), comma separated; for apps the TV ships that can't be uninstalled, like Samsung's built-in Netflix. LG and Samsung only | empty |
-
-Changed something? Run `./build.sh` and install again. Keep `freemytv.keystore`: updates are signed with it.
-
-### The TMDB key
-
-Free, and it takes two minutes: create an account at [themoviedb.org](https://www.themoviedb.org/signup), then open [Settings → API](https://www.themoviedb.org/settings/api) and request a developer key. Paste the *API Read Access Token* (or the *API Key*) after `tmdb_key=`. It's your key: `config.properties` stays out of git.
-
-### Opening a title, not just its app (optional)
-
-With a free [Watchmode](https://api.watchmode.com/) key (`watchmode_key=` in `config.properties`), a pick opens its own page in the streaming app instead of the app's home. The free plan (2,500 credits a month) is enough: each title costs two requests the first time and is remembered after that. It works where the app takes the title's web address (tested: Prime Video and JioHotstar); where it doesn't, the pick just opens the app, as without a key.
-
-## Going back
-
-On the TV: *Free My TV* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back exactly as they were. If the new home screen ever crashes three times in five minutes, it switches back by itself.
-
-To remove it for good, switch to *Original* first, then uninstall *Free My TV* (Settings → Apps). Uninstalled it while it was on? Install it again and pick *Original*: the list of what it turned off is kept in the TV's settings, so everything comes back.
-
-## What it changes
-
-- It becomes the home screen and the screensaver.
-- It turns off, without uninstalling:
-  - the stock home screen and screensaver;
-  - Google TV's recovery home, Play Games and YouTube Music;
-  - on TCL TVs, the TCL Channel, messages, store demo, hotel menu, manuals, mirroring and logging apps;
-  - on Philco TVs, AI PONT (promo channels and app downloads) and the manual;
-  - on Multilaser TVs, Anoki's screen-content recognition (ACR), the store demo and the manual;
-  - on KTC-made TVs (NextStar), Anoki's screen-content recognition (ACR), the store demo and the manual;
-  - Google Assistant, only with `disable_assistant=true`.
-- On TCL TVs, the remote's Netflix, YouTube and Prime buttons keep working through a small accessibility service that only reads those buttons. Pick what each one opens in *Free My TV* → *Remote Buttons*; *Original* turns the service off. On Vestel-made TVs (F&U and other store brands) and Xiaomi (Formovie) projectors the same goes for the Netflix button, and on KTC-made TVs (NextStar) for the Tabii button. On Sony TVs, the BRAVIA CORE, Netflix, Disney+, Prime Video, YouTube and Crunchyroll buttons (and Google Play, on remotes that have it) can each open the app you pick, or keep Sony's default.
-- Picture, sound, inputs, remote pairing, Google services and the Play Store are on a protected list, checked before every change, and so are Android's own pieces and factory menus. Before anything goes off, the TV is asked whether its inputs or its remote's Input key depend on it; those stay on.
-- On Google TV, the setup app goes off before the stock home screen and comes back after it, so its recovery screen never takes over the Home button in between.
-- Apps that saved a Wi-Fi network are never turned off, since Android would erase the network. If the TV's first setup saved yours, the switch asks you to forget the network and connect again in Settings first (saved networks out of range don't show there; Claude Code can remove them).
-
-## Any TV
-
-Free My TV runs on Google TV and Android TV: TCL, Sony, Hisense, Philips, Xiaomi, Vestel-made TVs (F&U), KTC-made TVs (NextStar) and more, plus streamers like Chromecast with Google TV, the Google TV Streamer, onn 4K and NVIDIA Shield. And on [LG](#lg-tvs-webos) and [Samsung](#samsung-tvs-tizen) TVs, as an app.
-
-**Any other TV:** plug a Google TV streamer into HDMI and free that one. Same steps, same home screen.
-
-**A different brand or model:** ask Claude. Free My TV is made to be adapted by AI. Open the folder in Claude Code and say *"set it up for my Sony"*: it reads your TV, finds its home screen and its promo apps, updates the lists below and walks you through a test. [CLAUDE.md](CLAUDE.md) tells it how.
-
-| What | Where |
-|---|---|
-| Apps to turn off | `DEBLOAT` in [`HomeMode.java`](app/src/io/freemytv/HomeMode.java) |
-| Apps never to touch | `PROTECTED` in the same file |
-| Apps on the shelf | `SHELF` in [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) |
-| Your brand's live TV app | `LIVE_TV_APPS` in the same file |
-
-## Make it yours
-
-It's your code, and Claude Code finds its way around it. Try:
-
-- *"Add Crunchyroll to the shelf."*
-- *"Show the prices in euros."*
-- *"Add Catalan."*
-- *"Switch to the night look an hour after sunset."*
-
-## How it works
-
-- **A plain Android app, no Gradle, no libraries.** [`build.sh`](build.sh) runs aapt2 → javac → d8 → zipalign → apksigner and makes a 2 MB APK.
-- **It uses the TV's own ADB, from inside the TV.** The app connects to `127.0.0.1:5555` with its own key (that's the *Allow USB debugging?* prompt) and runs the same commands you would: `cmd package set-home-activity`, `settings put secure screensaver_components`, `pm disable-user`. Nothing listens to the network.
-- **Drawn by hand on one Canvas**, with Android 13 shaders for the frosted glass and the sky (plain fills on Android 8 to 12, with lighter shadows and no GPU layers on 8 to 11 for their older GPUs).
-- **A safety net.** A watchdog in a separate process brings back the stock home screen after three crashes in five minutes, and a boot check keeps your choice after TV updates.
-- **On LG and Samsung, the same design in plain HTML, CSS and JavaScript** ([`web/`](web)), written for the Chromium of older TVs, with no frameworks. [`webos/build.py`](webos/build.py) packs it with `config.properties` into an `.ipk` without LG's tools, and [`webos/install.py`](webos/install.py) installs it through Developer Mode; on LG it lists and opens apps through the TV's own service bus (Luna), as LG's launcher does. [`tizen/build.py`](tizen/build.py) packs the same app into a Samsung `.wgt`, which uses Tizen's web APIs for the apps and the inputs. To preview it on a computer: `python3 webos/build.py --preview`, then open `out/webos/index.html` (a stand-in lists sample apps).
-- **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset), and optionally Binance (24-hour prices when `show_crypto=true`).
-
-| File | What it is |
-|---|---|
-| [`HomeView.java`](app/src/io/freemytv/HomeView.java) | The home screen |
-| [`HomeMode.java`](app/src/io/freemytv/HomeMode.java) | Switching between Free My TV and Original |
-| [`Adb.java`](app/src/io/freemytv/Adb.java) | The TV's own ADB, from inside the TV |
-| [`Recs.java`](app/src/io/freemytv/Recs.java) | The picks (TMDB) |
-| [`HomeData.java`](app/src/io/freemytv/HomeData.java) | Weather and prices |
-| [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) | The shelf, inputs and All Apps |
-| [`DreamView.java`](app/src/io/freemytv/DreamView.java) | The screensaver |
-| [`SettingsActivity.java`](app/src/io/freemytv/SettingsActivity.java) | The settings screen (the app's icon) |
-| [`Prefs.java`](app/src/io/freemytv/Prefs.java) | Settings changed on the TV |
-| [`RemoteKeys.java`](app/src/io/freemytv/RemoteKeys.java) | The TCL remote's app buttons |
-| [`Watchdog.java`](app/src/io/freemytv/Watchdog.java) | The safety net |
-| [`web/home.js`](web/home.js) | The home screen on LG TVs |
-| [`web/tv.js`](web/tv.js) | The TV's apps and inputs, on LG and Samsung |
-| [`webos/build.py`](webos/build.py), [`webos/install.py`](webos/install.py) | The LG app package and its install |
-| [`tizen/build.py`](tizen/build.py) | The Samsung app package |
-
-The website ([freemytv.io](https://freemytv.io)) is in [`docs/`](docs): plain HTML, CSS and JS on GitHub Pages.
-
-## Translations
-
-On Google TV, LG and Samsung, each language is one file, [`app/assets/i18n/<lang>.json`](app/assets/i18n), keyed by the
-English text in the code. *Automatic* follows the TV's language and uses any language that has a file (English otherwise); *Home
-Settings* → *Language* lists them all. Today: English, Portuguese, Spanish, German, French, Italian, Dutch, Polish,
-Swedish, Danish, Norwegian, Finnish, Czech, Romanian, Turkish, Russian, Ukrainian, Greek, Japanese, Korean, Simplified
-Chinese, Hindi, Indonesian, Vietnamese and Thai. Portuguese, Spanish, German, Russian and Thai were translated by hand and are the
-reference (fix them by hand); the others were machine-made, and corrections from native speakers are welcome.
-
-- **Add a language:** `python3 tools/translate.py --new ca`, then fill `app/assets/i18n/ca.json` by hand, or with
-  `ANTHROPIC_API_KEY` set, `python3 tools/translate.py --fill --lang ca` (only the strings go to the API).
-- **After changing text in the code:** `python3 tools/translate.py` lists what each language lacks; `--fill` translates
-  only that, `--prune` drops strings the code no longer uses.
-  Run `python3 tools/translate.py --check` to validate all catalogues without writing files.
-- Text built at runtime has placeholders (`"{n} min ago"`), so each language puts the words in its own order. A key
-  like `"unit|Automatic"` is the same English in another place, where a language may need another word.
-- Counts have plural forms: `"plural|one:{n} season|other:{n} seasons"` is translated with one form per plural
-  category the language uses (Russian `"one:{n} сезон|few:{n} сезона|many:{n} сезонов|other:{n} сезона"`, Japanese
-  just `"other:{n}シーズン"`), and Android's plural rules pick the one for each number.
-- **Limits:** right-to-left languages (Arabic, Hebrew, Persian) would need the layout mirrored, so they aren't there
-  yet. Chinese, Japanese, Korean and Hindi are drawn with the TV's system font (Inter has no such letters).
-
-## Privacy
-
-No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, and Watchmode only when you set a `watchmode_key`. Your settings stay on your computer and your TV.
-
-## Credits
-
-- Built with [Claude Code](https://claude.com/claude-code).
-- The LG version builds on what [@danielthejoker18](https://github.com/danielthejoker18) found in [FreeMyTvWebOS](https://github.com/danielthejoker18/FreeMyTvWebOS) (MIT): installing through Developer Mode and opening apps through the TV's service bus.
-- On Samsung TVs it installs with [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller) by [@reisxd](https://github.com/reisxd).
-- This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
-- Links to the titles in the streaming apps by [Watchmode](https://api.watchmode.com/).
-- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Prices from the [Binance](https://www.binance.com/) public API.
-- Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1). Coin logos: [cryptocurrency-icons](https://github.com/spothq/cryptocurrency-icons) (CC0). Samsung app logos: [Simple Icons](https://simpleicons.org) (CC0).
-- Not affiliated with Google, TCL, LG, Samsung or any streaming service. App names and logos belong to their owners.
-
-## License
-
-[MIT](LICENSE). Fork it, change it, ship it.
+**English:** An unofficial Free My TV Android fork for mainland-China Hisense TVs with MediaTek MT9655 and self-managed Emby libraries. Only the UXS model has been tested; other MT9655 models, chipsets, regional editions and firmware remain unverified. Adds per-user recommendations, explicit resume positions, optional visible-UI player account switching, focus-based artwork, a single Home destination with opt-in stock-launcher gating, debug toggles, native HDMI handling, six settings themes, adaptive app cards, stock-index widgets and an adjustable home screensaver. Tested on UXS / Android 14 / M mode; the public APK has not had a clean-TV or U-mode test. It is not an official Hisense, Emby or upstream release.

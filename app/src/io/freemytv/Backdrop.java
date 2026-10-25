@@ -63,6 +63,10 @@ final class Backdrop {
     }
 
     static Backdrop make(Bitmap src, boolean forLight) {
+        return make(src, forLight, null, false);
+    }
+
+    static Backdrop make(Bitmap src, boolean forLight, Bitmap poster, boolean requirePoster) {
         Bitmap out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);
         Paint photo = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
@@ -72,7 +76,10 @@ final class Backdrop {
         src.recycle();
         if (forLight) {
             // Light design: everything comes from the photo without scrims.
-            Bitmap wide = card(out, WIDE_W, WIDE_H), tall = card(out, TALL_W, TALL_H);
+            Bitmap wide = card(out, WIDE_W, WIDE_H);
+            // A portrait is framed from its original image, never from the intermediate 16:9 photo.
+            Bitmap tall = poster == null ? (requirePoster ? null : card(out, TALL_W, TALL_H)) : card(poster, TALL_W, TALL_H);
+            if (poster != null) poster.recycle();
             int[] frost = reduce(out, FW, FH, 3, 3);
             int[] light = whiten(frost.clone(), 0.82f);
             int[] glass = reduce(out, GW, GH, 2, 2);
@@ -154,7 +161,7 @@ final class Backdrop {
         return new Bitmap[] {out, frost};
     }
 
-    /** The center of the photo at the card's aspect ratio, filtered down (halving while possible) to the exact size. */
+    /** The center of a photo at the card's aspect ratio, filtered to the exact size. */
     private static Bitmap card(Bitmap full, int w, int h) {
         float ratio = (float) w / h;
         int cw = Math.min(full.getWidth(), Math.round(full.getHeight() * ratio));
@@ -202,6 +209,15 @@ final class Backdrop {
         return px;
     }
 
+    /** Built once off the UI thread for illustrated settings; filtering stays separate from the sharp subject. */
+    static Bitmap settingsFrost(Bitmap full, int width, int height) {
+        return settingsFrost(full,width,height,10,3);
+    }
+    static Bitmap settingsFrost(Bitmap full, int width, int height, int radius, int passes) {
+        int fw = Math.max(1,width/2), fh = Math.max(1,height/2);
+        return gpu(Bitmap.createBitmap(reduce(full,fw,fh,radius,passes),fw,fh,Bitmap.Config.ARGB_8888));
+    }
+
     /** Halved at each step (a true average, no aliasing), then blurred (box passes of radius r). */
     private static int[] reduce(Bitmap full, int w, int h, int radius, int passes) {
         Bitmap b = full;
@@ -211,10 +227,10 @@ final class Backdrop {
             b = half;
         }
         Bitmap small = Bitmap.createScaledBitmap(b, w, h, true);
-        if (b != full) b.recycle();
+        if (b != full && b != small) b.recycle();
         int[] px = new int[w * h];
         small.getPixels(px, 0, w, 0, 0, w, h);
-        small.recycle();
+        if (small != full) small.recycle();
         int[] tmp = new int[px.length];
         for (int pass = 0; pass < passes; pass++) {
             box(px, tmp, w, h, radius, true);

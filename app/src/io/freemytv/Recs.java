@@ -48,6 +48,11 @@ final class Recs {
         String title, backdrop, meta = "", app, pkg;
         String link;            // opens the title in its app (looked up with Watchmode), or null: the app's home
         boolean detailed;
+        String embyId, imagePath, posterPath, posterKey;
+        long positionTicks, runtimeTicks;
+        boolean resumable;
+        String seriesId, seriesTitle;
+        int embyFeeds, latestRank = Integer.MAX_VALUE, randomRank = Integer.MAX_VALUE;
     }
 
     interface Listener { void onRecs(); }
@@ -59,7 +64,7 @@ final class Recs {
     private static final int ANIMATION = 16;
     private static final long LIST_EVERY = 6 * 3600_000L;
     /** Bump when what is saved for each title changes (the saved list is discarded and fetched again). */
-    private static final int CACHE_VERSION = 3;
+    private static final int CACHE_VERSION = 5;
     private static final int MANHA = 0, TARDE = 1, NOITE = 2;
     /** Service name on TMDB (part of the name, lowercase) → TV app (HomeApps key, package). */
     private static final String[][] SERVICES = {
@@ -94,9 +99,12 @@ final class Recs {
         SERVICE_NAME.put("okko", "Okko");
         SERVICE_NAME.put("crunchyroll", "Crunchyroll");
         SERVICE_NAME.put("oneplay", "Oneplay");
+        SERVICE_NAME.put("emby", "Emby");
     }
     /** Country for "what streams where" (config.properties "tmdb_region", e.g. US, GB, BR). */
-    static final String REGION = Config.TMDB_REGION.trim().toUpperCase(Locale.ROOT);
+    private final String REGION;
+    private final boolean emby;
+    private final int tmdbVersion;
     /** The errors the settings say in words: TMDB lists none of the TV's apps in REGION, or the TV has none we know. */
     static final String NO_APPS = "none of the TV's streaming services are on TMDB";
     static final String NO_KNOWN_APPS = "none of the TV's streaming apps can give picks";
@@ -104,13 +112,22 @@ final class Recs {
     private static Recs instance;
 
     static synchronized Recs get(Context c) {
-        if (instance == null) instance = new Recs(c.getApplicationContext());
+        if (instance == null || instance.emby != Prefs.embyRecommendations()
+                || (!instance.emby && instance.tmdbVersion != TmdbSettings.version)) {
+            if (instance != null) { instance.retired = true; instance.io.shutdown(); instance.profileIo.shutdown(); }
+            instance = new Recs(c.getApplicationContext());
+        }
         return instance;
     }
 
+    private volatile boolean retired;
     private final Context context;
     private final SharedPreferences cache;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private final ExecutorService profileIo = Executors.newSingleThreadExecutor();
+    private volatile EmbyProfile.Snapshot profile = EmbyProfile.EMPTY;
+    private volatile boolean profileLoading;
+    private volatile long profileAt;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new ArrayList<>();
     private final Map<String, Backdrop> images = new LinkedHashMap<>();   // this hour's, built and ready to draw
@@ -123,11 +140,18 @@ final class Recs {
     private volatile boolean light;     // light design: builds only the cards (all three tabs' cards fit in memory)
     private volatile long failedAt, keyStamp, linkRetryAt;
     private volatile String listLanguage = "";   // language used for the saved titles, genres and texts
+    private volatile long connectionGeneration;
+
+    EmbyProfile.Snapshot profile() { return profile; }
+    long generation() { return connectionGeneration; }
 
     private Recs(Context c) {
         context = c;
-        cache = c.getSharedPreferences("recs", Context.MODE_PRIVATE);
+        emby = Prefs.embyRecommendations();
+        REGION = TmdbSettings.region(c); tmdbVersion = TmdbSettings.version;
+        cache = c.getSharedPreferences(emby ? "recs-emby" : "recs", Context.MODE_PRIVATE);
         if (cache.getInt("version", 0) != CACHE_VERSION) cache.edit().clear().putInt("version", CACHE_VERSION).apply();
+        if (emby && !EmbyRecs.identity(c).equals(cache.getString("identity", ""))) cache.edit().clear().apply();
         try {
             String saved = cache.getString("picks", null);
             if (saved != null) picks = parse(new JSONArray(saved));
@@ -143,7 +167,7 @@ final class Recs {
     void removeListener(Listener l) { listeners.remove(l); }
 
     static boolean hasKey(Context c) {
-        return !Config.TMDB_KEY.trim().isEmpty();
+        return Prefs.embyRecommendations() ? EmbyRecs.configured(c) : TmdbSettings.configured(c);
     }
 
     /** Last fetch, for the settings screen: {count, error, at}. Written by the home screen (another process). */
@@ -151,16 +175,27 @@ final class Recs {
         File f = new File(c.getFilesDir(), "recs-status.json");
         if (!f.exists() || !hasKey(c)) return new JSONObject();
         try (FileInputStream in = new FileInputStream(f)) {
-            return new JSONObject(read(in));
+            JSONObject result = new JSONObject(read(in));
+            if (!result.optString("source").equals(Prefs.embyRecommendations() ? "emby" : "tmdb")) return new JSONObject();
+            return result;
         } catch (Exception e) {
             return new JSONObject();
         }
     }
 
     private void writeStatus() {
+        if (retired || instance != this) return;
         try (FileOutputStream out = new FileOutputStream(new File(context.getFilesDir(), "recs-status.json"))) {
-            out.write(new JSONObject().put("count", picks.size()).put("error", error).put("at", System.currentTimeMillis())
-                    .toString().getBytes(StandardCharsets.UTF_8));
+            int resumeCount = 0;
+            for (Pick p : picks) if (p.resumable) resumeCount++;
+            JSONObject status = new JSONObject().put("count", picks.size()).put("error", error).put("at", System.currentTimeMillis())
+                    .put("source", emby ? "emby" : "tmdb").put("resumeCount", resumeCount);
+            if (emby) {
+                JSONObject rows = new JSONObject();
+                for (String kind : EmbyRow.KINDS) rows.put(kind, EmbyRow.row(picks, kind, Prefs.embyPosterCount()).size());
+                status.put("rows", rows);
+            }
+            out.write(status.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception ignored) {
         }
     }
@@ -187,7 +222,8 @@ final class Recs {
     /** This hour's 3, movies only ("movie") or shows only ("tv"); null = both (the home screen tabs). */
     List<Pick> now(String kind) {
         List<Pick> list = new ArrayList<>();
-        if (!hasKey(context)) return list;    // no TMDB key: no recommendations
+        if (!(emby ? EmbyRecs.configured(context) : TmdbSettings.configured(context))) return list;    // no TMDB key: no recommendations
+        if (emby) return embyNow(kind);
         Map<String, Boolean> have = new HashMap<>();   // one look per app, not per title (this runs every 15 s)
         for (Pick p : picks) {
             if ((kind == null || kind.equals(p.kind))
@@ -205,6 +241,11 @@ final class Recs {
         return out;
     }
 
+    private List<Pick> embyNow(String kind) {
+        if (HomeApps.launchIntent(context.getPackageManager(), "com.mb.android") == null) return new ArrayList<>();
+        return EmbyRow.row(picks, kind, Prefs.embyPosterCount());
+    }
+
     /** "Law & Order: Special Victims Unit" → "law & order" (what comes before ":" or " - "). */
     private static String franchise(String title) {
         String t = title == null ? "" : title.toLowerCase(Locale.ROOT);
@@ -220,7 +261,7 @@ final class Recs {
 
     /** The pick's ready backdrop (or null: builds it in the background and notifies when it's ready). */
     Backdrop backdrop(Pick p) {
-        if (p == null || p.backdrop == null) return null;
+        if (retired || p == null || p.backdrop == null) return null;
         final String key = p.backdrop;    // the details may swap the image midway
         synchronized (images) {
             Backdrop b = images.get(key);
@@ -242,12 +283,22 @@ final class Recs {
     }
 
     private File imageFile(Pick p) {
-        return new File(new File(context.getCacheDir(), "recs"), p.backdrop.replace("/", ""));
+        return new File(new File(context.getCacheDir(), emby ? "recs" : "recs-tmdb"), p.backdrop.replace("/", ""));
+    }
+
+    private File posterFile(Pick p) {
+        return p.posterKey == null ? null : new File(new File(context.getCacheDir(), emby ? "recs" : "recs-tmdb"), p.posterKey);
     }
 
     /** With a key: fetches the list if stale or the time of day (morning/afternoon/night) changed; then the details. */
     void refreshIfStale() {
-        if (!hasKey(context) || fetching) return;
+        if (retired) return;
+        if (EmbyRecs.configured(context)) refreshProfile();
+        if (emby) {
+            refreshEmby();
+            return;
+        }
+        if (!(emby ? EmbyRecs.configured(context) : TmdbSettings.configured(context)) || fetching) return;
         long now = System.currentTimeMillis();
         long stamp = sourceStamp();   // a new key, country, animation choice or installed streaming-app set refetches
         boolean newKey = stamp != keyStamp;
@@ -294,6 +345,99 @@ final class Recs {
         });
     }
 
+    /** Returning from playback asks Emby for fresh progress, without changing the user's app settings. */
+    void invalidate() {
+        if (emby) {
+            listAt = 0;
+            failedAt = 0;
+        }
+    }
+
+    void connectionChanged() {
+        connectionChanged("");
+    }
+
+    void connectionChanged(String profileName) {
+        if (!emby) {
+            connectionGeneration++; profile = new EmbyProfile.Snapshot(profileName, null); profileAt = 0;
+            refreshProfile(); notifyListeners(); return;
+        }
+        connectionGeneration++;
+        profile = new EmbyProfile.Snapshot(profileName, null); profileAt = 0;
+        picks = new ArrayList<>();
+        synchronized (images) { images.clear(); }
+        cache.edit().clear().apply();
+        invalidate();
+        notifyListeners();
+        refreshIfStale();
+    }
+
+    private void refreshEmby() {
+        refreshProfile();
+        if (!(emby ? EmbyRecs.configured(context) : TmdbSettings.configured(context)) || fetching) return;
+        long now = System.currentTimeMillis();
+        if (failedAt > 0 && now >= failedAt && now - failedAt < 5 * 60_000L) return;
+        if (listAt > 0 && now >= listAt && now - listAt < Prefs.embySyncMinutes() * 60_000L) return;
+        fetching = true;
+        final long generation = connectionGeneration;
+        io.execute(() -> {
+            try {
+                String identity = EmbyRecs.identity(context);
+                if (!identity.equals(cache.getString("identity", ""))) {
+                    picks = new ArrayList<>();
+                    synchronized (images) { images.clear(); }
+                    cache.edit().clear().putString("identity", identity).apply();
+                }
+                List<Pick> fresh = EmbyRecs.fetch(context);
+                if (generation != connectionGeneration) return;
+                picks = fresh;
+                listAt = System.currentTimeMillis();
+                listLanguage = Ui.language;
+                error = "";
+                failedAt = 0;
+                save();
+                notifyListeners();
+                // Publish the metadata before fetching pictures, so a slow image cannot delay every card.
+                for (Pick p : wanted()) {
+                    if (generation != connectionGeneration) break;
+                    try { download(p); } catch (Exception ignored) { }
+                }
+            } catch (Exception e) {
+                error = e instanceof IOException && e.getMessage() != null && e.getMessage().startsWith("Emby returned HTTP ")
+                        ? e.getMessage() : "Emby connection failed";
+                failedAt = System.currentTimeMillis();
+            } finally {
+                fetching = false;
+                writeStatus();
+                notifyListeners();
+                if (generation != connectionGeneration) {
+                    listAt = failedAt = 0;
+                    main.post(this::refreshIfStale);
+                }
+            }
+        });
+    }
+
+    private void refreshProfile() {
+        if (retired) return;
+        if (!EmbyRecs.configured(context) || profileLoading) return;
+        long now = System.currentTimeMillis();
+        if (profileAt > 0 && now >= profileAt && now - profileAt < 30 * 60_000L) return;
+        profileLoading = true;
+        final long generation = connectionGeneration;
+        profileIo.execute(() -> {
+            try {
+                EmbyProfile.Snapshot fresh = EmbyProfile.load(context);
+                if (generation != connectionGeneration) return;
+                profile = fresh; profileAt = System.currentTimeMillis(); notifyListeners();
+            } catch (Exception ignored) { profileAt = System.currentTimeMillis() - 25 * 60_000L; }
+            finally {
+                profileLoading = false;
+                if (generation != connectionGeneration) { profileAt = 0; main.post(this::refreshProfile); }
+            }
+        });
+    }
+
     /** Home screen design: the ready images are rebuilt for it (the light design uses cards, not the whole photo). */
     void setLight(boolean value) {
         if (value == light) return;
@@ -309,7 +453,7 @@ final class Recs {
      */
     List<Pick> showcase() {
         List<Pick> out = new ArrayList<>();
-        if (!hasKey(context)) return out;
+        if (!(emby ? EmbyRecs.configured(context) : TmdbSettings.configured(context))) return out;
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (Pick p : wanted()) if (hasImage(p) && seen.add(franchise(p.title))) out.add(p);
         Map<String, Boolean> have = new HashMap<>();
@@ -330,7 +474,8 @@ final class Recs {
      * time in the background, so it has more photos. Not used otherwise.
      */
     void prefetchAll() {
-        if (!hasKey(context) || fetching) return;
+        if (retired) return;
+        if (!(emby ? EmbyRecs.configured(context) : TmdbSettings.configured(context)) || fetching) return;
         long sinceFail = System.currentTimeMillis() - failedAt;
         if (failedAt != 0 && sinceFail >= 0 && sinceFail < 10 * 60_000L) return;
         List<Pick> todo = new ArrayList<>();
@@ -368,19 +513,24 @@ final class Recs {
     List<Pick> wanted() {
         List<Pick> out = new ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
-        for (String kind : new String[] {null, "movie", "tv"}) {
-            for (Pick p : now(kind)) if (seen.add(key(p))) out.add(p);
+        for (String kind : emby ? EmbyRow.KINDS : new String[] {null, "movie", "tv"}) {
+            List<Pick> row = now(kind);
+            for (int i = 0; i < Math.min(emby ? 3 : row.size(), row.size()); i++) {
+                Pick p = row.get(i);
+                if (seen.add(key(p))) out.add(p);
+            }
         }
         return out;
     }
 
     /** Movies and shows are numbered separately on TMDB: a pick is identified by type + number. */
     static String key(Pick p) {
-        return p.kind + ":" + p.id;
+        return p.embyId != null ? "emby:" + p.embyId : p.kind + ":" + p.id;
     }
 
     private void notifyListeners() {
-        main.post(() -> { for (Listener l : new ArrayList<>(listeners)) l.onRecs(); });
+        if (retired) return;
+        main.post(() -> { if (!retired) for (Listener l : new ArrayList<>(listeners)) l.onRecs(); });
     }
 
     // MARK: - TMDB
@@ -603,7 +753,7 @@ final class Recs {
     }
 
     private long sourceStamp() {
-        long stamp = (Config.TMDB_KEY.hashCode() * 31L + REGION.hashCode()) * 31L + (Config.HIDE_ANIMATION ? 1 : 0);
+        long stamp = TmdbSettings.stamp(context) * 31L + (Config.HIDE_ANIMATION ? 1 : 0);
         for (String[] service : SERVICES) stamp = stamp * 31L + (installed(service[2]) ? service[2].hashCode() : 0);
         return stamp;
     }
@@ -681,6 +831,7 @@ final class Recs {
         boolean bearer = key.startsWith("eyJ");   // read access token (v4) or API key (v3)
         String url = API + path + (bearer ? "" : (path.contains("?") ? "&" : "?") + "api_key=" + URLEncoder.encode(key, "UTF-8"));
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        c.setInstanceFollowRedirects(false);
         c.setConnectTimeout(8000);
         c.setReadTimeout(8000);
         c.setRequestProperty("Accept", "application/json");
@@ -696,14 +847,33 @@ final class Recs {
     }
 
     private String readKey() {
-        String key = Config.TMDB_KEY.trim();
-        return key.isEmpty() ? null : key;
+        try {
+            String key = TmdbSettings.key(context);
+            return key.isEmpty() ? null : key;
+        } catch (Exception e) { return null; }
     }
 
     // MARK: - Images (TMDB originals on disk, up to 24 so the whole list fits; this hour's kept ready in memory)
 
     private void download(Pick p) throws IOException {
         File f = imageFile(p);
+        if (p.embyId != null) {
+            try {
+                EmbyRecs.download(context, p, f);
+                File poster = posterFile(p);
+                if (poster != null) {
+                    boolean hadPoster = poster.isFile();
+                    try { EmbyRecs.downloadPoster(context, p, poster); } catch (Exception ignored) { }
+                    if (!hadPoster && poster.isFile()) {
+                        synchronized (images) { images.remove(p.backdrop); }
+                    }
+                }
+                prune(f.getParentFile());
+            } catch (Exception e) {
+                throw new IOException("Emby image unavailable");
+            }
+            return;
+        }
         if (f.exists()) return;
         //noinspection ResultOfMethodCallIgnored
         f.getParentFile().mkdirs();
@@ -744,7 +914,21 @@ final class Recs {
             if (b == null) throw new IOException("unreadable image");
             AppLog.w("backdrop \u201c" + p.title + "\u201d: " + bounds.outWidth + "×" + bounds.outHeight + " → " + Backdrop.W + "×" + Backdrop.H);
             boolean forLight = light;
-            Backdrop backdrop = Backdrop.make(b, forLight);
+            Bitmap poster = null;
+            File portrait = posterFile(p);
+            if (forLight && portrait != null && portrait.isFile()) {
+                BitmapFactory.Options size = new BitmapFactory.Options();
+                size.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(portrait.getPath(), size);
+                BitmapFactory.Options portraitOptions = new BitmapFactory.Options();
+                portraitOptions.inSampleSize = 1;
+                while (size.outWidth / (portraitOptions.inSampleSize * 2) >= Backdrop.TALL_W
+                        && size.outHeight / (portraitOptions.inSampleSize * 2) >= Backdrop.TALL_H)
+                    portraitOptions.inSampleSize *= 2;
+                poster = BitmapFactory.decodeFile(portrait.getPath(), portraitOptions);
+                if (poster == null) portrait.delete();
+            }
+            Backdrop backdrop = Backdrop.make(b, forLight, poster, p.embyId != null);
             if (forLight != light) return;   // the design changed midway: this one is stale
             synchronized (images) {
                 images.put(p.backdrop, backdrop);
@@ -767,7 +951,7 @@ final class Recs {
         }
     }
 
-    private static void prune(File dir) {
+    private void prune(File dir) {
         // A download cut off when the system stopped the app leaves its .part behind.
         long stale = System.currentTimeMillis() - 10 * 60_000L;
         File[] parts = dir.listFiles((d, name) -> name.endsWith(".part"));
@@ -776,9 +960,10 @@ final class Recs {
             if (parts[i].lastModified() < stale) parts[i].delete();
         }
         File[] files = dir.listFiles((d, name) -> !name.endsWith(".part"));
-        if (files == null || files.length <= 24) return;
+        int limit = emby ? 96 : 24;
+        if (files == null || files.length <= limit) return;
         Arrays.sort(files, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
-        for (int i = 0; i < files.length - 24; i++) {
+        for (int i = 0; i < files.length - limit; i++) {
             //noinspection ResultOfMethodCallIgnored
             files[i].delete();
         }
@@ -787,16 +972,24 @@ final class Recs {
     // MARK: - List cache
 
     private void save() {
+        if (retired) return;
         try {
             JSONArray a = new JSONArray();
             for (Pick p : picks) {
                 a.put(new JSONObject().put("id", p.id).put("kind", p.kind).put("title", p.title).put("backdrop", p.backdrop).put("link", p.link == null ? "" : p.link)
                         .put("meta", p.meta).put("app", p.app == null ? "" : p.app).put("pkg", p.pkg == null ? "" : p.pkg)
-                        .put("detailed", p.detailed));
+                        .put("detailed", p.detailed).put("embyId", p.embyId == null ? "" : p.embyId)
+                        .put("imagePath", p.imagePath == null ? "" : p.imagePath).put("positionTicks", p.positionTicks)
+                        .put("posterPath", p.posterPath == null ? "" : p.posterPath).put("posterKey", p.posterKey == null ? "" : p.posterKey)
+                        .put("runtimeTicks", p.runtimeTicks).put("resumable", p.resumable)
+                        .put("embyFeeds", p.embyFeeds).put("latestRank", p.latestRank).put("randomRank", p.randomRank)
+                        .put("seriesId", p.seriesId == null ? "" : p.seriesId)
+                        .put("seriesTitle", p.seriesTitle == null ? "" : p.seriesTitle));
             }
             SharedPreferences.Editor e = cache.edit().putString("picks", a.toString()).putInt("period", period).putLong("listAt", listAt)
                     .putString("language", listLanguage)
                     .putLong("keyStamp", keyStamp).putInt("version", CACHE_VERSION);
+            if (emby) e.putString("identity", EmbyRecs.identity(context));
             // Watchmode links of titles no longer in the list go (the refused-key mark stays).
             Set<String> keep = new HashSet<>();
             for (Pick p : picks) keep.add(linkKey(p));
@@ -821,6 +1014,18 @@ final class Recs {
             p.app = o.optString("app").isEmpty() ? null : o.optString("app");
             p.pkg = o.optString("pkg").isEmpty() ? null : o.optString("pkg");
             p.detailed = o.optBoolean("detailed");
+            p.embyId = o.optString("embyId").isEmpty() ? null : o.optString("embyId");
+            p.imagePath = o.optString("imagePath").isEmpty() ? null : o.optString("imagePath");
+            p.posterPath = o.optString("posterPath").isEmpty() ? null : o.optString("posterPath");
+            p.posterKey = o.optString("posterKey").isEmpty() ? null : o.optString("posterKey");
+            p.positionTicks = o.optLong("positionTicks");
+            p.runtimeTicks = o.optLong("runtimeTicks");
+            p.resumable = o.optBoolean("resumable");
+            p.embyFeeds = o.optInt("embyFeeds");
+            p.latestRank = o.optInt("latestRank", Integer.MAX_VALUE);
+            p.randomRank = o.optInt("randomRank", Integer.MAX_VALUE);
+            p.seriesId = o.optString("seriesId");
+            p.seriesTitle = o.optString("seriesTitle");
             out.add(p);
         }
         return out;

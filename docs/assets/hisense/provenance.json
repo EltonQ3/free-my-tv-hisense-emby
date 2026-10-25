@@ -1,0 +1,129 @@
+{
+  "images": [
+    {
+      "file": "home-emby-181.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "1806b38eef2eddec5dcc5e3769e0f255213c725554a642ad5cea9bbf3ca3576b"
+    },
+    {
+      "file": "emby-random.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "5170e3943ff651633a7572966b5babd5d91fd2d22627c79e3968863e7de35298"
+    },
+    {
+      "file": "emby-movies.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "445e1e7a9db48d0dad9f0f9e122100c9dbe4ed3a6346679a5636f8eb9684abf9"
+    },
+    {
+      "file": "emby-series.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "9ec7605bd511fccc0bd07f86daadc45e7d1fc5333ce5248ab96de2ff70e10194"
+    },
+    {
+      "file": "emby-profiles.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "Opaque account-name replacement with User 1–5; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "fd448ac6bb691970f075ef42fa5876ccb1c4a0c78997497d98b74a7e5027e0fc"
+    },
+    {
+      "file": "themes-lucy.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "3224bb155c6dec72925c8fb3a03165fda9a12f0b8d07989e81fb695fb932bb73"
+    },
+    {
+      "file": "settings-chiikawa.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "cropped above historical notification strip; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "482bc9018a62cb1dd44381cce09019e7dacdc54c33f5ca3b93988ae76aef590d"
+    },
+    {
+      "file": "settings-classic.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "cropped above historical notification strip; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "3b19e44e0f39e4d7a2f243a8c60186eb119c1f9df10ad9999e69f8f9a0a17a05"
+    },
+    {
+      "file": "settings-oath.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "cropped above historical notification strip; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "a21ba310ce4e96d44b8dae4c11b16c8b7343f3fbbb762c489726a1be36a76dc4"
+    },
+    {
+      "file": "settings-twilight.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "cropped above historical notification strip; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "3cae28fbe093316a35343c1f57dc82cfb928c8808d09971ebbccce086af1fa00"
+    },
+    {
+      "file": "settings-lucy.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "cropped above historical notification strip; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "6e0317cdc9512e7e9e1a6b17f90f2c4b39e4af30d7029986638e5a2b5e347caf"
+    },
+    {
+      "file": "settings-mahoyo.webp",
+      "version": "1.8.1-uxs.20261025",
+      "source": "Fresh capture on the reference TV on 2026-10-25; normal UI navigation.",
+      "processing": "cropped above historical notification strip; re-encoded without EXIF/GPS/XMP",
+      "privacy": "Library/progress/avatar examples authorized by owner; no account names, server address, credentials or pairing information.",
+      "sha256": "ad194a8c5b2ea4d6287946c5dcbe9ebc37898cf8c26a99c64f898c26f2361ece"
+    },
+    {
+      "file": "icon-clash-after.png",
+      "source": "Logo-only 1.8.1 regression crop; before/after clearly labeled.",
+      "processing": "4× nearest-neighbour diagnostic enlargement; re-encoded without metadata.",
+      "privacy": "No surrounding private screen content.",
+      "sha256": "33b58bf92ee7430580a5c08655312987e77b641d72a1be49d02195af662c6cc8"
+    },
+    {
+      "file": "icon-clash-before.png",
+      "source": "Logo-only 1.8.1 regression crop; before/after clearly labeled.",
+      "processing": "4× nearest-neighbour diagnostic enlargement; re-encoded without metadata.",
+      "privacy": "No surrounding private screen content.",
+      "sha256": "c21e46c0a2fbf83d694eebacdbe53389b53ef97760bef435a401c9e69ca8a85c"
+    },
+    {
+      "file": "icon-stock-after.png",
+      "source": "Logo-only 1.8.1 regression crop; before/after clearly labeled.",
+      "processing": "4× nearest-neighbour diagnostic enlargement; re-encoded without metadata.",
+      "privacy": "No surrounding private screen content.",
+      "sha256": "908c9bc59b2cb33a574fe0d8f566e0a23cde4bc947d0681b21000133d04f3175"
+    },
+    {
+      "file": "icon-stock-before.png",
+      "source": "Logo-only 1.8.1 regression crop; before/after clearly labeled.",
+      "processing": "4× nearest-neighbour diagnostic enlargement; re-encoded without metadata.",
+      "privacy": "No surrounding private screen content.",
+      "sha256": "4e9cf34fdbb023eb10b5bd6f9c8a4b7617ebb6cd02d2b02eb5adf8250a66e6cc"
+    }
+  ],
+  "rights": "See THIRD_PARTY_NOTICES.md; character artwork and trademarks are not blanket MIT licensed."
+}

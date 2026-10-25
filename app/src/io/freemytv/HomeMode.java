@@ -36,6 +36,7 @@ final class HomeMode {
     static final String PKG = "io.freemytv";
     static final String HOME_ACTIVITY = PKG + "/" + PKG + ".HomeActivity";
     static final String SETTINGS_ACTIVITY = PKG + "/" + PKG + ".SettingsActivity";
+    static final String HISENSE_HOME = "com.jamdeo.tv.vod/com.ju.main.launcher.LauncherActivity";
     /** Our screensaver: on Android 11 the copy that runs in the main process (ScreensaverAlone, #10). */
     static final String DREAM = PKG + "/" + PKG + (Build.VERSION.SDK_INT == 30 ? ".ScreensaverAlone" : ".Screensaver");
     static final String FREE = "free", ORIGINAL = "original";
@@ -150,7 +151,14 @@ final class HomeMode {
 
     /** Checked before every disable: never the protected list, Android's own pieces or a factory menu. */
     private static boolean mayTurnOff(String pkg) {
+        // Keep the stock desktop available when local debugging is off.
+        if (pkg == null) return false;
+        if (keepHisenseApps()) return false;
         return !PROTECTED.contains(pkg) && !CORE.matcher(pkg).matches() && !FACTORY.matcher(pkg).matches();
+    }
+
+    static boolean keepHisenseApps() {
+        return "Hisense".equalsIgnoreCase(Build.BRAND) && "MT9655".equals(Build.DEVICE);
     }
 
     /**
@@ -208,23 +216,28 @@ final class HomeMode {
      * boot check and an update turn it back on.
      */
     static void ensureRemoteService(Context c, long delayMs) {
-        if (RemoteKeys.supported()) ModeJob.schedule(c, ModeJob.REMOTE, null, delayMs);
+        if (remoteServiceSupported()) ModeJob.schedule(c, ModeJob.REMOTE, null, delayMs);
     }
 
     static void ensureRemoteServiceNow(Context app) {
-        if (!RemoteKeys.supported() || !FREE.equals(state(app).optString("mode"))) return;
+        if (!remoteServiceSupported() || !FREE.equals(state(app).optString("mode"))) return;
         try (Adb adb = Adb.connect(app, 10_000, null)) {
-            remoteService(app, adb, true);
+            remoteService(app, adb, !keepHisenseApps());
         } catch (IOException e) {
             AppLog.w("remote buttons service: " + e.getMessage());
         }
     }
 
     private static final String REMOTE_SERVICE = PKG + "/" + PKG + ".RemoteKeyService";
+    private static boolean remoteServiceSupported() {
+        return RemoteKeys.supported();
+    }
     private static final Pattern SERVICE = Pattern.compile("[\\w.]+/[\\w.$]+");
 
     /** Adds ours to the enabled accessibility services (keeping the others, like TalkBack), or takes it out. */
     private static void remoteService(Context c, Adb adb, boolean on) throws IOException {
+        // On Hisense the user grants this service for the Home key; mode changes must retain that grant.
+        if (keepHisenseApps()) return;
         String current = adb.shell("settings get secure enabled_accessibility_services").trim();
         if (current.equals("null")) current = "";
         List<String> others = new ArrayList<>();
@@ -270,6 +283,7 @@ final class HomeMode {
             return;
         }
         try (Adb adb = connect(c, s)) {
+            restoreHisenseDesktop(c, adb);
             // The TV's own home screen and screensaver, recorded once (before ours replace them) so "original" restores
             // exactly what was there, on any brand.
             String home = originalHome(s);
@@ -296,7 +310,8 @@ final class HomeMode {
                 owners = new HashSet<>();
             }
             boolean setupHome = setupIsHome(adb);
-            if ((setupHome && owners.contains(GOOGLE_SETUP)) || owners.contains(packageOf(home))) {
+            if ((setupHome && mayTurnOff(GOOGLE_SETUP) && owners.contains(GOOGLE_SETUP))
+                    || (mayTurnOff(packageOf(home)) && owners.contains(packageOf(home)))) {
                 throw new IOException(Ui.tr("the TV's first setup saved the Wi-Fi, and turning it off would erase those networks. "
                         + "In Settings → Network & Internet, forget the network and connect again (networks out of range don't "
                         + "show there: Claude Code can remove them from your computer), then try once more."));
@@ -363,9 +378,9 @@ final class HomeMode {
             s.put("mode", FREE).put("since", System.currentTimeMillis()).put("homeReverted", false)
                     .put("disabled", new JSONArray(sorted(disabled))).put("setupHome", setupHome);
             save(c, s);
-            if (RemoteKeys.supported()) {
+            if (remoteServiceSupported()) {
                 try {
-                    remoteService(c, adb, true);
+                    remoteService(c, adb, !keepHisenseApps());
                 } catch (IOException e) {
                     AppLog.w("remote buttons service: " + e.getMessage());
                 }
@@ -377,6 +392,20 @@ final class HomeMode {
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, FREE, 120_000);
         } catch (Exception e) {
+            // Restore the original mode if the Hisense handover fails partway through.
+            if (keepHisenseApps()) {
+                try (Adb recovery = Adb.connect(c, 10_000, null)) {
+                    boolean restored = restoreHome(recovery, originalHome(state(c)));
+                    restoreScreensaver(recovery, state(c));
+                    if (restored) {
+                        JSONObject back = state(c);
+                        back.put("mode", ORIGINAL).put("homeReverted", false);
+                        save(c, back);
+                    }
+                } catch (Exception recoveryError) {
+                    AppLog.w("home entry recovery: " + recoveryError.getMessage());
+                }
+            }
             done(c, Ui.trf("Couldn't turn on Free My TV: {error}", "error", e.getMessage()));
         }
     }
@@ -384,6 +413,7 @@ final class HomeMode {
     private static void applyOriginal(Context c) {
         JSONObject s = state(c);
         try (Adb adb = connect(c, s)) {
+            StockHomeGate.restoreOriginal(c, adb);
             busy(c, Ui.tr("Turning the apps back on…"));
             String home = originalHome(s);
             Set<String> toEnable = new HashSet<>(stringList(s, "disabled"));
@@ -495,6 +525,7 @@ final class HomeMode {
             try (Adb adb = Adb.connect(app, 10_000, null)) {
                 boolean ours = homeHolder(adb).contains(PKG);
                 if (!ours && (!FREE.equals(s.optString("mode")) || s.optBoolean("homeReverted"))) return;
+                StockHomeGate.restoreOriginal(app, adb);
                 String home = originalHome(s);
                 List<String> keptOff = stringList(s, "keptOff");
                 if (!restoreHome(adb, home)) {
@@ -547,6 +578,8 @@ final class HomeMode {
             if (!FREE.equals(s.optString("mode"))) return;
             List<String> fixed = new ArrayList<>();
             try (Adb adb = Adb.connect(app, 10_000, null)) {
+                restoreHisenseDesktop(app, adb);
+                s = state(app);
                 Set<String> present = packages(adb, "");
                 Set<String> disabledNow = packages(adb, "-d");
                 Set<String> owners = wifiOwners(adb);
@@ -648,6 +681,7 @@ final class HomeMode {
      */
     private static List<String> targets(String home, String dream, boolean setupHome) {
         List<String> out = new ArrayList<>();
+        if (keepHisenseApps()) return out;
         String homePkg = home.contains("FallbackHome") ? null : packageOf(home);
         if (setupHome) out.add(GOOGLE_SETUP);
         if (homePkg != null && !homePkg.equals(PKG)) out.add(homePkg);
@@ -657,6 +691,80 @@ final class HomeMode {
         out.addAll(Arrays.asList(DEBLOAT));
         if (Config.DISABLE_ASSISTANT) out.addAll(Arrays.asList(ASSISTANT));
         return out;
+    }
+
+    /** Migrate only the stock desktop disabled by our earlier versions, preserving the user's other choices. */
+    private static void restoreHisenseDesktop(Context c, Adb adb) throws IOException, JSONException {
+        if (!keepHisenseApps()) return;
+        if (StockHomeGate.manages(c)) return;
+        String pkg = "com.jamdeo.tv.vod";
+        JSONObject s = state(c);
+        Set<String> disabled = new HashSet<>(stringList(s, "disabled"));
+        Set<String> ours = recorded(adb);
+        boolean legacy = disabled.contains(pkg) || ours.contains(pkg);
+        if (legacy && packages(adb, "-d").contains(pkg)
+                && !adb.shell("pm enable --user 0 " + pkg).contains("new state: enabled"))
+            throw new IOException("Couldn't restore the stock desktop");
+        disabled.remove(pkg);
+        ours.remove(pkg);
+        s.put("disabled", new JSONArray(sorted(disabled))).put("hisenseDualHome", true);
+        save(c, s);
+        record(adb, ours);
+    }
+
+    /** Separate, opt-in exception to the normal Hisense protection. Never accepts a package name. */
+    static void checkStockGate(Context c, Adb adb) throws Exception {
+        if (!keepHisenseApps()) throw new IOException(Ui.tr("Connection failed"));
+        String role = adb.shell("cmd role get-role-holders android.app.role.HOME");
+        if (!Arrays.asList(role.trim().split("\\s+")).contains(PKG)) throw new IOException(Ui.tr("Connection failed"));
+        String homes = adb.shell("cmd package query-activities --brief --user 0 -a android.intent.action.MAIN -c android.intent.category.HOME");
+        if (!homes.contains(PKG + "/") || !homes.contains("HomeActivity")) throw new IOException(Ui.tr("Connection failed"));
+        Set<String> owners = wifiOwners(adb);
+        if (owners == null || owners.contains("com.jamdeo.tv.vod"))
+            throw new IOException(Ui.tr("I couldn't check which app saved the Wi-Fi, so nothing changed. Try again in a minute."));
+        Set<String> needed = neededByTv(adb, Collections.singleton("com.jamdeo.tv.vod"));
+        if (needed == null || !needed.isEmpty()) throw new IOException(Ui.tr("Connection failed"));
+    }
+
+    static StockHomePlan.Desktop stockDesktop(Adb adb) {
+        return new StockHomePlan.Desktop() {
+            @Override public boolean disabled() throws Exception {
+                if (!adb.shell("pm list packages --user 0 com.jamdeo.tv.vod").trim().equals("package:com.jamdeo.tv.vod"))
+                    throw new IOException("Stock desktop unavailable");
+                String out = adb.shell("pm list packages -d --user 0 com.jamdeo.tv.vod").trim();
+                if (out.isEmpty()) return false;
+                if (out.equals("package:com.jamdeo.tv.vod")) return true;
+                throw new IOException("Stock desktop state unavailable");
+            }
+            @Override public void available(boolean on) throws Exception {
+                String out = adb.shell(on ? "pm enable --user 0 com.jamdeo.tv.vod"
+                        : "pm disable-user --user 0 com.jamdeo.tv.vod");
+                if (!out.contains(on ? "new state: enabled" : "new state: disabled-user"))
+                    throw new IOException("Stock desktop switch failed");
+            }
+            @Override public void stop() throws Exception {
+                String out = adb.shell("am force-stop --user 0 com.jamdeo.tv.vod").trim();
+                if (!out.isEmpty()) throw new IOException("Stock desktop stop failed");
+            }
+        };
+    }
+
+    static void recordStockGate(Adb adb, boolean owned) throws IOException {
+        Set<String> list = stockGateRecord(adb);
+        if (owned) list.add("com.jamdeo.tv.vod"); else list.remove("com.jamdeo.tv.vod");
+        record(adb, list);
+        if (!stockGateRecord(adb).equals(list)) throw new IOException("Stock desktop recovery record unavailable");
+    }
+
+    private static Set<String> stockGateRecord(Adb adb) throws IOException {
+        Set<String> list = new HashSet<>();
+        String value = adb.shell("settings get global " + RECORD).trim();
+        if (value.isEmpty() || value.equals("null")) return list;
+        for (String pkg : value.split(",", -1)) {
+            if (!pkg.matches("[\\w.]+")) throw new IOException("Stock desktop recovery record unavailable");
+            list.add(pkg);
+        }
+        return list;
     }
 
     /** The home screen in use now ("package/activity"): the HOME role holder, among the TV's home screens. */

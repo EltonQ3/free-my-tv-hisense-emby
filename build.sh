@@ -40,7 +40,18 @@ LAT="$(number latitude 40.7128)"
 LON="$(number longitude -74.0060)"
 ASSIST=false; [ "$(prop disable_assistant false)" = "true" ] && ASSIST=true
 CRYPTO=false; [ "$(prop show_crypto true)" = "true" ] && CRYPTO=true
+EMBY_HOST="$(prop emby_host '')"
+EMBY_ONLY=false
+if [ -n "$EMBY_HOST" ]; then
+  [[ "$EMBY_HOST" =~ ^[a-zA-Z0-9.:-]+$ ]] || { echo "Invalid emby_host" >&2; exit 1; }
+  EMBY_ONLY=true
+fi
 ANIMATION=false; [ "$(prop hide_animation false)" = "true" ] && ANIMATION=true
+TMDB_KEY_VALUE=""; WATCHMODE_KEY_VALUE=""
+if [ "$EMBY_ONLY" != "true" ]; then
+  TMDB_KEY_VALUE="$(prop tmdb_key '')"
+  WATCHMODE_KEY_VALUE="$(prop watchmode_key '')"
+fi
 
 rm -rf out && mkdir -p out/gen/io/freemytv out/classes
 cat > out/gen/io/freemytv/Config.java <<EOF
@@ -50,8 +61,10 @@ package io.freemytv;
 final class Config {
     private Config() {}
 
-    static final String TMDB_KEY = "$(prop tmdb_key '')";
-    static final String WATCHMODE_KEY = "$(prop watchmode_key '')";
+    static final boolean EMBY_ONLY = $EMBY_ONLY;
+    static final String EMBY_HOST = "$EMBY_HOST";
+    static final String TMDB_KEY = "$TMDB_KEY_VALUE";
+    static final String WATCHMODE_KEY = "$WATCHMODE_KEY_VALUE";
     static final String TMDB_REGION = "$(prop tmdb_region US)";
     static final String LATITUDE = "$LAT";
     static final String LONGITUDE = "$LON";
@@ -67,10 +80,22 @@ final class Config {
 EOF
 
 # --- Build
+mkdir -p out/network-res/xml
+cat > out/network-res/xml/network_security_config.xml <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">${EMBY_HOST:-localhost}</domain>
+    </domain-config>
+</network-security-config>
+EOF
+"$BT/aapt2" compile --dir out/network-res -o out/network-res.zip
 "$BT/aapt2" compile --dir app/res -o out/res.zip
 # Fonts uncompressed: Android reads them straight from the APK.
-"$BT/aapt2" link -o out/base.apk -I "$AJ" --manifest app/AndroidManifest.xml --java out/gen out/res.zip \
-  --min-sdk-version 26 --target-sdk-version 33 -A app/assets -0 ttf
+"$BT/aapt2" link -o out/base.apk -I "$AJ" --manifest app/AndroidManifest.xml --java out/gen out/res.zip out/network-res.zip \
+  --min-sdk-version 26 --target-sdk-version 33 -A app/assets -0 ttf -0 wav
 # Windows aapt2 packs assets with backslash separators ("assets/symbols\x.png") and Android
 # cannot find them: the home screen loses its icons and fonts. Rename the zip entries to "/".
 case "$(uname -s 2>/dev/null)" in

@@ -9,4 +9,8 @@
         <item name="android:windowShowWallpaper">false</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
     </style>
+
+    <style name="FreeMyTV.Home.Entry" parent="FreeMyTV.Home">
+        <item name="android:windowBackground">#101719</item>
+    </style>
 </resources>

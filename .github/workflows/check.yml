@@ -5,7 +5,7 @@ name: Check
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, hisense-emby]
 
 permissions:
   contents: read
@@ -34,6 +34,11 @@ jobs:
           echo "ANDROID_HOME=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
       # build.sh makes a throwaway config.properties and signing key: no secrets needed.
       - run: tools/check.sh android
+      - run: bash tools/check-debug.sh
+      - run: bash tools/check-stock-home.sh
+      - run: bash tools/check-hisense-home.sh
+      - run: bash tools/check-emby-account.sh
+      - run: bash tools/check-emby-playback.sh
 
   web:
     name: Translations, LG and Samsung

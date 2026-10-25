@@ -1,70 +1,63 @@
 package io.freemytv;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
-
-import java.io.File;
-import java.io.FileOutputStream;
+import android.os.SystemClock;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
-/**
- * Soft click for the home screen (moving focus and opening). The app synthesizes the sound itself (a short, low
- * "tock"), writes it once as a WAV in the cache and plays it quietly through SoundPool. It only plays on the home
- * screen, never inside apps.
- */
+/** Original synthesized navigation cues, limited to the home screen and settings. */
 final class Click {
-    private static final int RATE = 48_000;
     private SoundPool pool;
-    private int move, open;
+    private int move, open, back;
+    private volatile boolean moveReady, openReady, backReady;
+    private long lastMove;
 
     Click(Context c) {
         try {
             pool = new SoundPool.Builder().setMaxStreams(3).setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
-            move = pool.load(wav(c, "click-move.wav", 1450f, 0.009f, 0.030f), 1);
-            open = pool.load(wav(c, "click-open.wav", 880f, 0.022f, 0.090f), 1);
+            pool.setOnLoadCompleteListener((p, sample, status) -> {
+                if (status == 0 && sample == move) moveReady = true;
+                if (status == 0 && sample == open) openReady = true;
+                if (status == 0 && sample == back) backReady = true;
+            });
+            try (AssetFileDescriptor fd = c.getAssets().openFd("sounds/focus-reference-v1.wav")) {
+                move = pool.load(fd, 1);
+            }
+            try (AssetFileDescriptor fd = c.getAssets().openFd("sounds/confirm-reference-v1.wav")) {
+                open = pool.load(fd, 1);
+            }
+            try (AssetFileDescriptor fd = c.getAssets().openFd("sounds/back-reference-v1.wav")) {
+                back = pool.load(fd, 1);
+            }
         } catch (IOException | RuntimeException e) {
-            AppLog.w("click sound unavailable: " + e.getMessage());
+            AppLog.w("click sound unavailable");
             release();
         }
     }
 
     void move() {
-        if (pool != null && Prefs.sounds()) pool.play(move, 0.14f, 0.14f, 1, 0, 1f);
+        long now = SystemClock.elapsedRealtime();
+        if (pool != null && moveReady && Prefs.sounds() && now - lastMove >= 55) {
+            lastMove = now;
+            pool.play(move, 0.24f, 0.24f, 1, 0, 1f);
+        }
     }
 
     void open() {
-        if (pool != null && Prefs.sounds()) pool.play(open, 0.18f, 0.18f, 1, 0, 1f);
+        if (pool != null && openReady && Prefs.sounds()) pool.play(open, 0.40f, 0.40f, 2, 0, 1f);
+    }
+
+    void back() {
+        if (pool != null && backReady && Prefs.sounds()) pool.play(back, 0.34f, 0.34f, 2, 0, 1f);
     }
 
     void release() {
         if (pool != null) pool.release();
         pool = null;
-    }
-
-    /** Sine wave plus one harmonic, 1.5 ms attack (no pop) and exponential decay. */
-    private static String wav(Context c, String name, float freq, float decay, float seconds) throws IOException {
-        File f = new File(c.getCacheDir(), name);
-        if (f.exists() && f.length() > 44) return f.getPath();
-        int n = Math.round(RATE * seconds);
-        ByteBuffer b = ByteBuffer.allocate(44 + n * 2).order(ByteOrder.LITTLE_ENDIAN);
-        b.put("RIFF".getBytes("US-ASCII")).putInt(36 + n * 2).put("WAVE".getBytes("US-ASCII"));
-        b.put("fmt ".getBytes("US-ASCII")).putInt(16).putShort((short) 1).putShort((short) 1)
-                .putInt(RATE).putInt(RATE * 2).putShort((short) 2).putShort((short) 16);
-        b.put("data".getBytes("US-ASCII")).putInt(n * 2);
-        for (int i = 0; i < n; i++) {
-            double t = (double) i / RATE;
-            double env = Math.min(1, t / 0.0015) * Math.exp(-t / decay);
-            double s = 0.75 * Math.sin(2 * Math.PI * freq * t) + 0.25 * Math.sin(2 * Math.PI * freq * 2.01 * t);
-            b.putShort((short) Math.round(s * env * 0.7 * Short.MAX_VALUE));
-        }
-        try (FileOutputStream out = new FileOutputStream(f)) {
-            out.write(b.array());
-        }
-        return f.getPath();
+        moveReady = openReady = backReady = false;
     }
 }

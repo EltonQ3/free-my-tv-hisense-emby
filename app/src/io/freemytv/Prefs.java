@@ -96,6 +96,10 @@ final class Prefs {
 
     static void setTheme(String v) { put("theme", v); }
 
+    /** Settings artwork (separate from the home screen's automatic light/dark appearance). */
+    static String settingsArt() { String key=sp().getString("settingsArt", "chiikawa"); return SettingsTheme.KEYS[SettingsTheme.index(key)]; }
+    static void setSettingsArt(String key) { for(String candidate:SettingsTheme.KEYS) if(candidate.equals(key)) { put("settingsArt", key); return; } }
+
     // MARK: - City
 
     static String city() { return sp().getString("city", Config.CITY).trim(); }
@@ -111,16 +115,36 @@ final class Prefs {
     static boolean sounds() { return sp().getBoolean("sounds", true); }
     static void setSounds(boolean on) { put("sounds", on); }
 
-    // MARK: - Widgets and coins
+    /** Each provider keeps its own cache and connection settings. */
+    static boolean embyRecommendations() {
+        return sp().getString("recommendationSource", Config.EMBY_ONLY ? "emby" : "tmdb").equals("emby");
+    }
+    static void setRecommendationSource(boolean emby) { put("recommendationSource", emby ? "emby" : "tmdb"); }
 
-    static boolean weather() { return sp().getBoolean("weather", true); }
+    static boolean embyAutoTabs() { return embyRecommendations() && sp().getBoolean("embyAutoTabs", true); }
+    static void setEmbyAutoTabs(boolean on) { put("embyAutoTabs", on); }
+    static boolean embyAutoAccount() { return embyRecommendations() && sp().getBoolean("embyAutoAccount", true); }
+    static void setEmbyAutoAccount(boolean on) { put("embyAutoAccount", on); }
+    private static int embyChoice(String key, int fallback, int[] choices) {
+        int value = sp().getInt(key, fallback);
+        for (int choice : choices) if (choice == value) return value;
+        return fallback;
+    }
+    static int embyIdleSeconds() { return embyChoice("embyIdleSeconds", 10, new int[] {5, 10, 15, 30}); }
+    static int embyPosterCount() { return embyChoice("embyPosterCount", 10, new int[] {5, 8, 10}); }
+    static int embySyncMinutes() { return embyChoice("embySyncMinutes", 30, new int[] {15, 30, 60}); }
+    static void setEmbyNumber(String key, int value) { sp().edit().putInt(key, value).apply(); version++; }
+
+    // MARK: - Widgets and indices
+
+    static boolean weather() { return sp().getBoolean("weather", false); }
     static void setWeather(boolean on) { put("weather", on); }
 
     static boolean quotes() { return sp().getBoolean("quotes", Config.SHOW_CRYPTO); }
     static void setQuotes(boolean on) { put("quotes", on); }
 
-    static boolean coin(int i) { return sp().getBoolean("coin" + i, true); }
-    static void setCoin(int i, boolean on) { put("coin" + i, on); }
+    static boolean coin(int i) { return sp().getBoolean("index-" + HomeData.COINS[i], true); }
+    static void setCoin(int i, boolean on) { put("index-" + HomeData.COINS[i], on); }
 
     // MARK: - Shelf
 
@@ -148,6 +172,15 @@ final class Prefs {
     static List<String> topButtons() {
         String v = sp().getString("topButtons", null);
         if (v == null) return null;
+        // Older Emby builds used the live-TV key for the profile button. Migrate once, without enabling TV.
+        if (Config.EMBY_ONLY && !sp().getBoolean("separateTopAccount", false)) {
+            List<String> migrated = new ArrayList<>();
+            for (String key : v.split(",")) if (!key.isEmpty()) migrated.add(key.equals("live") ? "account" : key);
+            // Debug was previously forced on even when absent from the saved list.
+            if (HomeMode.keepHisenseApps() && !migrated.contains("debug")) migrated.add(Math.min(1, migrated.size()), "debug");
+            v = android.text.TextUtils.join(",", migrated);
+            sp().edit().putString("topButtons", v).putBoolean("separateTopAccount", true).apply();
+        }
         List<String> out = new ArrayList<>();
         for (String p : v.split(",")) if (!p.isEmpty()) out.add(p);
         return out;
@@ -156,7 +189,8 @@ final class Prefs {
     static void setTopButtons(List<String> keys) {
         StringBuilder sb = new StringBuilder();
         for (String p : keys) sb.append(sb.length() == 0 ? "" : ",").append(p);
-        put("topButtons", sb.toString());
+        sp().edit().putString("topButtons", sb.toString()).putBoolean("separateTopAccount", true).apply();
+        version++;
     }
 
     // MARK: - Remote buttons

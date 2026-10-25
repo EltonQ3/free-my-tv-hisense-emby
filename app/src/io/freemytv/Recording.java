@@ -24,6 +24,7 @@ abstract class Recording {
     abstract void setTranslationX(float x);
     abstract void setTranslationY(float y);
     abstract void draw(Canvas c);
+    abstract boolean hasContent();
 
     private static final class Node extends Recording {
         private final RenderNode node;
@@ -40,6 +41,7 @@ abstract class Recording {
         @Override void setTranslationX(float x) { node.setTranslationX(x); }
         @Override void setTranslationY(float y) { node.setTranslationY(y); }
         @Override void draw(Canvas c) { c.drawRenderNode(node); }
+        @Override boolean hasContent() { return node.hasDisplayList(); }
     }
 
     private static final class Pic extends Recording {
@@ -64,6 +66,8 @@ abstract class Recording {
         @Override void setAlpha(float a) { alpha = Math.max(0, Math.min(1, a)); }
         @Override void setTranslationX(float x) { tx = x; }
         @Override void setTranslationY(float y) { ty = y; }
+
+        @Override boolean hasContent() { return picture.getWidth() > 0 && picture.getHeight() > 0; }
 
         @Override void draw(Canvas c) {
             if (alpha <= 0.004f) return;

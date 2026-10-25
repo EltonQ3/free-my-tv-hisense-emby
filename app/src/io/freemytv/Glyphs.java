@@ -4,85 +4,64 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
+import android.graphics.Path;
 import android.util.SparseArray;
 
-
-/**
- * Official coin logos (BTC, ETH, SOL, USDT), flat and single-color: just the symbol, no disc or gradient
- * (res/drawable/coin_*.xml, vector drawables from the open cryptocurrency-icons set, CC0). The four symbols were
- * drawn on the same 32-unit frame with balanced visual "weight", so here they all use the same frame scale and only
- * the spare space on the sides is trimmed. Each size is drawn once into an exact-size bitmap and reused (sharp, no
- * resampling).
- */
+/** Original geometric index marks, with one stroke weight and frame, tinted by the home screen's theme. */
 final class Glyphs {
     private Glyphs() {}
-
     private static final SparseArray<Bitmap> BITMAPS = new SparseArray<>();
     private static final Paint PAINT = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
-    /** Draws the coin centered at (cx, cy), sized to the text next to it (cap height `cap`), in `color`. */
-    static void coin(Context context, Canvas c, String coin, float cx, float cy, float cap, int color) {
-        Bitmap b = bitmap(context, coin, frame(cap));
-        if (b == null) return;
+    static void coin(Context context, Canvas c, String index, float cx, float cy, float cap, int color) {
+        Bitmap b = bitmap(index, frame(cap));
         PAINT.setColor(color);
         c.drawBitmap(b, Math.round(cx - b.getWidth() / 2f), Math.round(cy - b.getHeight() / 2f), PAINT);
     }
 
-    /** Width the symbol takes up (for laying out the line). */
-    static float width(Context context, String coin, float cap) {
-        Bitmap b = bitmap(context, coin, frame(cap));
-        return b == null ? 0 : b.getWidth();
-    }
+    static float width(Context context, String index, float cap) { return frame(cap); }
+    private static int frame(float cap) { return Math.max(12, Math.round(cap * 1.6f)); }
 
-    /** Side of the 32-unit frame: the largest symbol (the ETH diamond) ends up ~1.3 × the cap height. */
-    private static int frame(float cap) {
-        return Math.max(12, Math.round(cap * 1.75f));
-    }
-
-    private static Bitmap bitmap(Context context, String coin, int frame) {
-        int slot = slot(coin), key = slot << 16 | frame;
+    private static Bitmap bitmap(String index, int frame) {
+        int slot = index.equals("IXIC") ? 0 : index.equals("HSTECH") ? 1 : 2;
+        int key = slot << 16 | frame;
         synchronized (BITMAPS) {
-            if (BITMAPS.indexOfKey(key) >= 0) return BITMAPS.get(key);
-            Drawable d = context.getDrawable(IDS[slot]);
-            Bitmap b = null;
-            if (d != null) {
-                Bitmap full = Bitmap.createBitmap(frame, frame, Bitmap.Config.ARGB_8888);
-                d.setBounds(0, 0, frame, frame);
-                d.draw(new Canvas(full));
-                b = trimSides(full).extractAlpha();
+            Bitmap b = BITMAPS.get(key);
+            if (b != null) return b;
+            Bitmap full = Bitmap.createBitmap(frame, frame, Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(full);
+            c.scale(frame / 32f, frame / 32f);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            p.setColor(0xFFFFFFFF);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(2.6f);
+            p.setStrokeCap(Paint.Cap.ROUND);
+            p.setStrokeJoin(Paint.Join.ROUND);
+            if (slot == 0) {
+                // A rising N: distinct from an exchange's official trademark.
+                Path n = new Path();
+                n.moveTo(7, 24); n.lineTo(7, 9); n.lineTo(24, 24); n.lineTo(24, 8);
+                c.drawPath(n, p);
+                c.drawLine(20, 8, 24, 8, p);
+                c.drawLine(24, 8, 24, 12, p);
+            } else if (slot == 1) {
+                // A technology circuit in an H arrangement.
+                c.drawLine(8, 8, 8, 24, p); c.drawLine(24, 8, 24, 24, p);
+                c.drawLine(8, 16, 24, 16, p);
+                p.setStyle(Paint.Style.FILL);
+                for (float x : new float[] {8, 24}) for (float y : new float[] {8, 24}) c.drawCircle(x, y, 2.4f, p);
+                c.drawCircle(16, 16, 2.4f, p);
+            } else {
+                // A rounded mainland A, matching the other index monograms.
+                Path a = new Path();
+                a.moveTo(6, 25); a.lineTo(16, 7); a.lineTo(26, 25);
+                c.drawPath(a, p);
+                c.drawLine(9.9f, 18, 22.1f, 18, p);
             }
+            b = full.extractAlpha();
+            full.recycle();
             BITMAPS.put(key, b);
             return b;
-        }
-    }
-
-    /** Trims only the empty columns on the sides (the frame height stays, so all coins center on the same line). */
-    private static Bitmap trimSides(Bitmap b) {
-        int w = b.getWidth(), h = b.getHeight(), left = w, right = -1;
-        int[] column = new int[h];
-        for (int x = 0; x < w; x++) {
-            b.getPixels(column, 0, 1, x, 0, 1, h);
-            for (int a : column) {
-                if ((a >>> 24) > 8) {
-                    left = Math.min(left, x);
-                    right = Math.max(right, x);
-                    break;
-                }
-            }
-        }
-        if (right < left) return b;
-        return Bitmap.createBitmap(b, left, 0, right - left + 1, h);
-    }
-
-    private static final int[] IDS = {R.drawable.coin_btc, R.drawable.coin_eth, R.drawable.coin_sol, R.drawable.coin_usdt};
-
-    private static int slot(String coin) {
-        switch (coin) {
-            case "BTC": return 0;
-            case "ETH": return 1;
-            case "SOL": return 2;
-            default: return 3;
         }
     }
 }

@@ -12,11 +12,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -27,22 +26,14 @@ import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * Optional crypto prices (Binance, every 5 min) and weather/sunrise/sunset (Open-Meteo, every 30 min), cached
- * so the screen opens with numbers. Only fetched while the home screen or the screensaver is visible (the screen asks).
- * Neither source needs a key. Location and currency come from config.properties.
+/** Optional index quotes (Tencent Finance, every 5 min) and weather (Open-Meteo, every 30 min).
+ * Cached locally and refreshed only while a screen that uses them is visible. Neither source needs a key.
  */
 final class HomeData {
-    static final String[] COINS = {"BTC", "ETH", "SOL", "USDT"};
-    static final String[] COIN_NAMES = {"Bitcoin", "Ethereum", "Solana", "Dollar"};
-    private static final String CURRENCY = Config.CURRENCY.trim().toUpperCase(Locale.ROOT);
-    /** Binance has no pairs in some currencies (INR...) and then refuses the whole request: prices go in dollars instead. */
-    private static volatile boolean inDollars;
-
-    /** Binance quotes dollars as USDT. */
-    private static String quote() {
-        return CURRENCY.equals("USD") || inDollars ? "USDT" : CURRENCY;
-    }
+    // Kept under the existing widget API so the hand-drawn home and screensaver share one layout.
+    static final String[] COINS = {"IXIC", "HSTECH", "CSI300"};
+    private static final String[] FEED_IDS = {"usIXIC", "hkHSTECH", "sh000300"};
+    private static final String PRICE_URL = "https://qt.gtimg.cn/q=usIXIC,hkHSTECH,sh000300";
     private static final String WEATHER_QUERY = "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
             + "&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=2";
 
@@ -56,32 +47,28 @@ final class HomeData {
     private static final long PRICES_EVERY = 5 * 60_000L, WEATHER_EVERY = 30 * 60_000L;
     interface Listener { void onData(); }
 
-    /** BTC, ETH and SOL; in Brazilian reais also the dollar (USDT/BRL), which Binance doesn't list for most currencies. */
+    /** The selected stock indices. */
     static int coinCount() {
         return Prefs.quotes() ? active().length : 0;
     }
 
     private static volatile int[] activeCoins;
     private static volatile int activeVersion = -1;
-    private static volatile boolean activeInDollars;
 
-    /** Indexes in COINS of the coins the user has on (and that Binance lists in this currency). */
+    /** Indexes in COINS of the indices the user has on. */
     static int[] active() {
         int[] a = activeCoins;
-        boolean dollars = inDollars;
-        if (a != null && activeVersion == Prefs.version && activeInDollars == dollars) return a;
+        if (a != null && activeVersion == Prefs.version) return a;
         int n = 0;
         int[] tmp = new int[COINS.length];
-        // The dollar only in reais, not in dollars: USDTUSDT isn't a pair, and Binance would refuse the whole request.
-        for (int i = 0; i < COINS.length; i++) if (Prefs.coin(i) && (i < 3 || CURRENCY.equals("BRL") && !dollars)) tmp[n++] = i;
+        for (int i = 0; i < COINS.length; i++) if (Prefs.coin(i)) tmp[n++] = i;
         a = java.util.Arrays.copyOf(tmp, n);
         activeCoins = a;
         activeVersion = Prefs.version;
-        activeInDollars = dollars;
         return a;
     }
 
-    /** Settings changed (city, coins): fetch again now. */
+    /** Settings changed: fetch again now. */
     void settingsChanged() {
         pricesAt = 0;
         weatherAt = 0;
@@ -90,33 +77,36 @@ final class HomeData {
     }
 
     static String coinName(int i) {
-        return i == 3 ? Ui.tr("Dollar") : COIN_NAMES[i];
+        switch (i) {
+            case 0: return Ui.tr("Nasdaq Composite");
+            case 1: return Ui.tr("Hang Seng TECH");
+            default: return Ui.tr("CSI 300");
+        }
     }
 
-    /** Binance.com refuses the US (HTTP 451); Binance.US answers the same call in dollars. */
-    private static final String[] PRICE_HOSTS = {"https://api.binance.com", "https://api.binance.us"};
-
-    private static String pricesPath() {
-        StringBuilder symbols = new StringBuilder();
-        int[] coins = active();
-        for (int i = 0; i < coins.length; i++) symbols.append(i == 0 ? "" : ",").append("%22").append(COINS[coins[i]]).append(quote()).append("%22");
-        return "/api/v3/ticker/24hr?type=MINI&symbols=%5B" + symbols + "%5D";
-    }
+    static String source() { return Ui.tr("Tencent Finance"); }
 
     private static String getPrices() throws IOException {
-        IOException failed = null;
-        for (String host : PRICE_HOSTS) {
-            try {
-                return get(host + pricesPath());
-            } catch (IOException e) {
-                // Binance.US has only dollar pairs: its error counts only where Binance.com refuses the US (HTTP 451).
-                // After a timeout or a 5xx there, its HTTP 400 would put the prices in dollars for good.
-                if (failed == null || "HTTP 451".equals(failed.getMessage())) failed = e;
-                // A pair Binance doesn't list (HTTP 400) isn't a refusal: the caller falls back to dollars instead.
-                if ("HTTP 400".equals(e.getMessage())) break;
+        // This mainland endpoint needs neither a subscription nor the TV's configured HTTP proxy.
+        HttpURLConnection c = (HttpURLConnection) new URL(PRICE_URL).openConnection(Proxy.NO_PROXY);
+        c.setInstanceFollowRedirects(false);
+        c.setConnectTimeout(6000);
+        c.setReadTimeout(6000);
+        c.setRequestProperty("User-Agent", "Mozilla/5.0 FreeMyTV");
+        c.setRequestProperty("Referer", "https://gu.qq.com/");
+        try {
+            if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
+            try (InputStream in = c.getInputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int n;
+                while ((n = in.read(buffer)) > 0) {
+                    if (out.size() + n > 64 * 1024) throw new IOException("Quote response too large");
+                    out.write(buffer, 0, n);
+                }
+                return out.toString("GB18030");
             }
-        }
-        throw failed;
+        } finally { c.disconnect(); }
     }
 
     static final class Weather {
@@ -138,9 +128,12 @@ final class HomeData {
         return instance;
     }
 
-    final double[] prices = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
-    /** 24 h change (%), in the same order. */
-    final double[] changes = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
+    final double[] prices = {Double.NaN, Double.NaN, Double.NaN};
+    /** Change versus the previous close (%), in the same order. */
+    final double[] changes = {Double.NaN, Double.NaN, Double.NaN};
+    private volatile String[] quoteTimes = {"", "", ""};
+
+    String quoteTime(int i) { return i >= 0 && i < quoteTimes.length ? quoteTimes[i] : ""; }
     volatile long pricesAt, weatherAt;
     volatile Weather weather = new Weather();
 
@@ -153,12 +146,11 @@ final class HomeData {
 
     private HomeData(Context c) {
         cache = c.getSharedPreferences("homedata", Context.MODE_PRIVATE);
-        inDollars = CURRENCY.equals(cache.getString("dollarsFor", ""));
         try {
             if (Prefs.quotes()) {
-                String p = cache.getString("prices", null);
+                String p = cache.getString("indices-v1", null);
                 if (p != null) parsePrices(p);
-                pricesAt = cache.getLong("pricesAt", 0);
+                pricesAt = cache.getLong("indices-v1-at", 0);
             }
             String w = cache.getString("weather", null);
             // The cached forecast is for the city it was fetched for; another city means fetch again.
@@ -180,19 +172,10 @@ final class HomeData {
             fetchingPrices = true;
             io.execute(() -> {
                 try {
-                    String body;
-                    try {
-                        body = getPrices();
-                    } catch (IOException e) {
-                        if (inDollars || CURRENCY.equals("USD") || !"HTTP 400".equals(e.getMessage())) throw e;
-                        inDollars = true;
-                        cache.edit().putString("dollarsFor", CURRENCY).apply();
-                        AppLog.w("prices: Binance has no " + CURRENCY + " pairs, using dollars");
-                        body = getPrices();
-                    }
+                    String body = getPrices();
                     parsePrices(body);
                     pricesAt = System.currentTimeMillis();
-                    cache.edit().putString("prices", body).putLong("pricesAt", pricesAt).apply();
+                    cache.edit().putString("indices-v1", body).putLong("indices-v1-at", pricesAt).apply();
                     notifyListeners();
                 } catch (Exception e) {
                     pricesFailedAt = System.currentTimeMillis();
@@ -230,22 +213,32 @@ final class HomeData {
     }
 
     private void parsePrices(String body) throws Exception {
-        JSONArray list = new JSONArray(body);
-        String quote = quote();
-        int found = 0;
-        for (int i = 0; i < list.length(); i++) {
-            JSONObject o = list.getJSONObject(i);
-            String symbol = o.getString("symbol");
-            for (int k = 0; k < COINS.length; k++) {
-                if (!symbol.equals(COINS[k] + quote)) continue;
-                found++;
-                double last = Double.parseDouble(o.optString("lastPrice", o.optString("price", "NaN")));
-                double open = Double.parseDouble(o.optString("openPrice", "NaN"));
-                prices[k] = last;
-                changes[k] = open > 0 ? (last - open) / open * 100 : Double.NaN;
-            }
+        double[] nextPrices = new double[COINS.length], nextChanges = new double[COINS.length];
+        String[] nextTimes = new String[COINS.length];
+        for (int k = 0; k < FEED_IDS.length; k++) {
+            String marker = "v_" + FEED_IDS[k] + "=\"";
+            int start = body.indexOf(marker);
+            if (start < 0) throw new IOException("Missing quote: " + COINS[k]);
+            start += marker.length();
+            int end = body.indexOf('"', start);
+            if (end < start) throw new IOException("Incomplete quote");
+            String[] fields = body.substring(start, end).split("~", -1);
+            if (fields.length <= 32) throw new IOException("Incomplete quote: " + COINS[k]);
+            double last = Double.parseDouble(fields[3]), previous = Double.parseDouble(fields[4]);
+            if (!Double.isFinite(last) || last <= 0 || !Double.isFinite(previous) || previous <= 0)
+                throw new IOException("Invalid quote: " + COINS[k]);
+            nextPrices[k] = last;
+            nextChanges[k] = (last - previous) / previous * 100;
+            // Preserve the source time (not the fetch time); indices may be delayed or show an earlier close.
+            String at = fields[30].replaceAll("[^0-9:/ .-]", "");
+            if (at.matches("[0-9]{14}")) at = at.substring(0, 4) + "-" + at.substring(4, 6) + "-" + at.substring(6, 8)
+                    + " " + at.substring(8, 10) + ":" + at.substring(10, 12) + ":" + at.substring(12, 14);
+            nextTimes[k] = at.replace('/', '-');
         }
-        if (found == 0) pricesAt = 0;   // cached in another currency (config changed): fetch again
+        // Validate the whole batch first; a malformed feed must not overwrite the last good values.
+        System.arraycopy(nextPrices, 0, prices, 0, prices.length);
+        System.arraycopy(nextChanges, 0, changes, 0, changes.length);
+        quoteTimes = nextTimes;
     }
 
     private static Weather parseWeather(String body) throws Exception {
@@ -347,37 +340,16 @@ final class HomeData {
         return Ui.locale();
     }
 
-    /** 580.4k · 21.0k · 1.04k · 5.61 (as short as possible; the dollar always with cents). */
-    static String price(double v) {
-        if (Double.isNaN(v)) return "—";
-        if (v >= 10_000) return String.format(locale(), "%.1fk", v / 1000);
-        if (v >= 1000) return String.format(locale(), "%.2fk", v / 1000);
-        return String.format(locale(), "%.2f", v);
-    }
+    /** Index points, never currency or abbreviated thousands. */
+    static String price(double v) { return brl(v); }
+    static String compact(double v) { return brl(v); }
 
-    /** 416.3k · 12.2k · 1.04k · 531 · 5.05: abbreviated, for the price row on the home screen. */
-    static String compact(double v) {
-        if (Double.isNaN(v)) return "—";
-        if (v >= 10_000) return String.format(locale(), "%.1fk", v / 1000);
-        if (v >= 1000) return String.format(locale(), "%.2fk", v / 1000);
-        if (v >= 100) return String.format(locale(), "%.0f", v);
-        return String.format(locale(), "%.2f", v);
-    }
-
-    /**
-     * $108,234 · $185.20 · R$ 581.234 · 74 264 € (cents only below a thousand), in the configured currency, with the
-     * symbol and spaces where the language puts them.
-     */
     static String brl(double v) {
-        String symbol = currencySymbol();
-        if (Double.isNaN(v)) return symbol + "—";
-        return Ui.once("brl", v, () -> {
-            DecimalFormat f = (DecimalFormat) NumberFormat.getCurrencyInstance(locale());
-            DecimalFormatSymbols s = f.getDecimalFormatSymbols();
-            s.setCurrencySymbol(symbol.trim());   // our symbols: ICU would write "US$" outside the US
-            f.setDecimalFormatSymbols(s);
-            f.setMinimumFractionDigits(v >= 1000 ? 0 : 2);
-            f.setMaximumFractionDigits(v >= 1000 ? 0 : 2);
+        if (!Double.isFinite(v)) return "—";
+        return Ui.once("index-points", v, () -> {
+            NumberFormat f = NumberFormat.getNumberInstance(locale());
+            f.setMinimumFractionDigits(2);
+            f.setMaximumFractionDigits(2);
             return f.format(v);
         });
     }
@@ -402,17 +374,6 @@ final class HomeData {
         return Ui.trf("H:{max}", "max", degrees(wx.max)) + space + Ui.trf("L:{min}", "min", degrees(wx.min));
     }
 
-    private static String currencySymbol() {
-        switch (inDollars ? "USD" : CURRENCY) {
-            case "USD": return "$";
-            case "BRL": return "R$ ";
-            case "EUR": return "€";
-            case "GBP": return "£";
-            case "JPY": return "¥";
-            default: return CURRENCY + " ";
-        }
-    }
-
     /** Celsius or Fahrenheit (config.properties "temperature": C, F, or auto = Fahrenheit in the US). */
     static String degrees(double v) {
         if (Double.isNaN(v)) return "—";
@@ -426,13 +387,13 @@ final class HomeData {
         return "US".equals(Locale.getDefault().getCountry());
     }
 
-    /** "+1.2%" / "−0.8%" (a real minus sign); "+1,2 %" in the languages that space the percent sign. */
+    /** "+1.20%" / "−0.80%" (a real minus sign); "+1,2 %" in the languages that space the percent sign. */
     static String change(double v) {
         if (Double.isNaN(v)) return "";
         return Ui.once("change", v, () -> {
             NumberFormat f = NumberFormat.getPercentInstance(locale());
-            f.setMinimumFractionDigits(1);
-            f.setMaximumFractionDigits(1);
+            f.setMinimumFractionDigits(2);
+            f.setMaximumFractionDigits(2);
             return (v >= 0 ? "+" : "−") + f.format(Math.abs(v) / 100);
         });
     }
