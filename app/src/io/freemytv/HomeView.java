@@ -2426,7 +2426,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             focusedCell.set(cardRects[cardIndex]);
             focusedCell.offset(-cardScroll.value * k, 0);
             r = focusedCell;
-            if (emby && "com.mb.android".equals(p.pkg)) {
+            if (emby && EmbyNativePlayer.supported(p.pkg)) {
                 boolean series = seriesResumeTab() && "tv".equals(p.kind);
                 if (!EmbyRecs.validId(series ? p.seriesId : p.embyId)) { showToast(Ui.tr("Connection failed")); return; }
                 click.open();

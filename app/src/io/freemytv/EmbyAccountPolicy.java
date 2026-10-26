@@ -34,6 +34,8 @@ final class EmbyAccountPolicy {
     }
     static final class Frame {
         boolean owned, editable;
+        boolean tvMenu;
+        int accountMenu = -1;
         int scroll = -1;
         final List<Button> buttons = new ArrayList<>();
         final Set<String> text = new HashSet<>();

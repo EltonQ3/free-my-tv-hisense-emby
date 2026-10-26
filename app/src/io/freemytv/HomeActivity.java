@@ -77,6 +77,7 @@ public class HomeActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        EmbyAccountService.cancelReturn();
         resumed = true;
         if (prefsVersion != Prefs.version) {
             prefsVersion = Prefs.version;
@@ -224,6 +225,15 @@ public class HomeActivity extends Activity {
             });
         }
         writer.println(prefix + "EmbyPlayerProbe: " + playerProbe);
+        if (args != null) for (String arg : args) if (arg.equals("emby-task-probe")) {
+            PROBE.execute(() -> {
+                try { EmbyTvTasks.processId(getApplicationContext()); EmbyTvTasks.find(getApplicationContext()); }
+                catch (Exception e) { EmbyTvTasks.lastStatus = "{\"state\":\"unavailable\",\"type\":\"" + e.getClass().getSimpleName() + "\"}"; }
+            });
+        }
+        writer.println(prefix + "EmbyNativeProcess: " + EmbyTvTasks.processStatus);
+        writer.println(prefix + "EmbyNativeTask: " + EmbyTvTasks.lastStatus);
+        writer.println(prefix + "EmbyNativeScreen: " + EmbyAccountService.tvScreen());
         writer.println(prefix + "EmbyPlayerHandoff: " + EmbyPlayer.lastStatus);
         writer.println(prefix + "EmbyAccountRemote: " + EmbyAccountService.status());
         writer.println(prefix + "ScreenSaverDelayMs: " + ScreensaverTiming.read(this));

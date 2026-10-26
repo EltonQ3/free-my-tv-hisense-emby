@@ -8,9 +8,9 @@ Modification baseline: `4d739516379976e4cc256e4106f3680d6bb94da8`.
 
 This is a genuine GitHub fork, with upstream commit ancestry retained. `main` remains the upstream snapshot; `hisense-emby` contains this unofficial Android / Hisense UXS / Emby edition. The original README is preserved at [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).
 
-## Requirements reviewed on 2026-10-25
+## Requirements reviewed on 2026-10-26
 
-The live upstream LICENSE, README, AGENTS.md, CLAUDE.md and root tree were reviewed (observed upstream main: `57ea46051fc9dc3201da425f858ef2768f1cc1f2`). No separate CONTRIBUTING or fork-distribution policy appeared. The README explicitly allows forks, changes and distribution under MIT. This checklist distinguishes upstream requirements from this fork's release choices.
+The upstream AGENTS.md / CLAUDE.md contributor guidance was reviewed for the first release and remains in this fork. The current README, LICENSE, root tree and release/build guidance were rechecked on 2026-10-26 (observed upstream main: `90908dc5bce178feb52e9868947cc039c64730fc`). No separate CONTRIBUTING or fork-distribution policy appeared. The README explicitly allows forks, changes and distribution under MIT. This checklist distinguishes upstream requirements from this fork's release choices.
 
 - **MIT requirement:** retain the full original copyright and permission notice in source and distributions. [LICENSE](LICENSE) is unchanged.
 - **Upstream contributor workflow:** run `tools/check.sh` before pushing, covering Android, translation catalogues, generic webOS / Tizen packaging and ES5 compatibility. We retain that script and add Hisense/Emby policy and playback tests.

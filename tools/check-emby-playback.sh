@@ -20,9 +20,12 @@ fi
 [ "$task_actual_hash" = "$task_json_hash" ] || { echo "Test JSON dependency checksum mismatch" >&2; exit 1; }
 "${JAVA_HOME:+$JAVA_HOME/bin/}javac" -encoding UTF-8 -cp "$task_test_dir/json.jar" -d "$task_test_dir/classes" \
   tests/jvm/android/content/*.java tests/jvm/io/freemytv/*.java \
+  app/src/io/freemytv/EmbyAccountPolicy.java app/src/io/freemytv/EmbyTvAccountPolicy.java \
+  app/src/io/freemytv/EmbyTvPlaybackPolicy.java \
   app/src/io/freemytv/EmbyProgress.java app/src/io/freemytv/EmbyPlayback.java \
   app/src/io/freemytv/EmbyAccounts.java app/src/io/freemytv/EmbyPlayerSession.java \
-  app/src/io/freemytv/EmbyPlayer.java app/src/io/freemytv/EmbyHttp.java
-for task_test in PlaybackCheck AccountCheck PlayerCheck HttpCheck HandoffCheck; do
+  app/src/io/freemytv/EmbyPlayer.java app/src/io/freemytv/EmbyHttp.java \
+  tests/EmbyTvPlayerTest.java tests/EmbyDualClientTest.java
+for task_test in PlaybackCheck AccountCheck PlayerCheck HttpCheck HandoffCheck TvBackHandoffCheck EmbyTvPlayerTest EmbyDualClientTest DualPlayerHandoffCheck; do
   "${JAVA_HOME:+$JAVA_HOME/bin/}java" -cp "$task_test_dir/classes:$task_test_dir/json.jar" "io.freemytv.$task_test"
 done

@@ -84,6 +84,7 @@ final class HomeApps {
     private static final String[][] SHELF = {
         {"juhaokan", "聚好看", "com.jamdeo.tv.vod", "169FBC", "", "1"},
         {"emby", "Emby", "com.mb.android", "52B54B", "", "1"},
+        {"emby", "Emby TV", "tv.emby.embyatv", "52B54B", "", "1"},
         {"hisensemedia", "本地媒体", "com.jamdeo.tv.mediacenter", "5C8CD6", "", "1"},
         {"hisensecast", "Hi投屏", "com.hisense.multiscreen.screenhelper", "16A4D8", "", "1"},
         {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
@@ -168,11 +169,12 @@ final class HomeApps {
     /** The shelf's packages in order: the user's list (Settings > Shelf), or the built-in one. */
     static List<String> shelfPackages(Context c) {
         List<String> custom = Prefs.shelf();
-        if (custom != null) return custom;
+        if (custom != null) return EmbyNativePlayer.shelf(c, custom);
         List<String> out = new ArrayList<>();
         PackageManager pm = c.getPackageManager();
-        for (String[] d : SHELF) if (out.size() < MAX_SHELF && launchIntent(pm, d[2]) != null) out.add(d[2]);
-        return out;
+        for (String[] d : SHELF) if (launchIntent(pm, d[2]) != null) out.add(d[2]);
+        List<String> selected = EmbyNativePlayer.shelf(c, out);
+        return new ArrayList<>(selected.subList(0, Math.min(MAX_SHELF, selected.size())));
     }
 
     /** Every app the shelf could hold, as {package, name}: the ones from SHELF first, then the other TV apps by name. */
@@ -416,7 +418,7 @@ final class HomeApps {
             it.kind = APP;
             it.pkg = pkg;
             it.key = pkg;
-            it.label = app[1];
+            it.label = EmbyNativePlayer.supported(pkg) ? EmbyNativePlayer.label(pkg) : app[1];
             it.tile = appTile(c, null, pkg, 0);
             items.add(it);
         }
@@ -446,6 +448,11 @@ final class HomeApps {
     static boolean open(Activity a, Item it, View from, int x, int y, int w, int h) {
         if (it.kind == APP && "com.jamdeo.tv.vod".equals(it.pkg) && StockHomeGate.enabled(a)) {
             StockHomeGate.open(a);
+            return true;
+        }
+        if (it.kind == APP && it.uri == null && EmbyNativePlayer.supported(it.pkg)
+                && it.pkg.equals(EmbyNativePlayer.preferred(a)) && Prefs.embyRecommendations() && EmbyRecs.configured(a)) {
+            a.startActivity(new Intent(a, EmbyStartActivity.class).putExtra("accountOnly", true));
             return true;
         }
         Intent intent, plain = null;   // plain: the app's own home, when it won't take the title's address

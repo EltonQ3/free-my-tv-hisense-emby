@@ -1,0 +1,45 @@
+{
+  "version": "1.8.5-uxs.20261026-public",
+  "version_code": 38,
+  "date": "2026-10-26",
+  "package": "io.freemytv",
+  "apk_sha256": "339c71437517bf48c1518ccfe99c65089a9ce1798222799819c5c2b38f13b01d",
+  "signer_sha256": "e9271d5ef1ea9a85bcb9b1d25a6029d74d0c68679bf8d3da7a6c5d66a90ea03e",
+  "variant": "sanitized-public",
+  "credentials_in_bundle": false,
+  "contains_private_keys": false,
+  "third_party_app_apks_included": false,
+  "built_from_upstream_commit": "4d739516379976e4cc256e4106f3680d6bb94da8",
+  "presets": {
+    "server": null,
+    "account": null,
+    "api_keys": false,
+    "city": "",
+    "latitude": 0,
+    "longitude": 0,
+    "weather_enabled": false,
+    "tmdb_region": "HK"
+  },
+  "players": [
+    {
+      "package": "com.mb.android",
+      "reference_version": "3.5.35"
+    },
+    {
+      "package": "tv.emby.embyatv",
+      "reference_version": "2.5.03g"
+    }
+  ],
+  "verification": {
+    "java_assertions": 724,
+    "installer_cases": 6,
+    "dual_installed_hardware_retested": false,
+    "clean_public_install_hardware_retested": false
+  },
+  "limitations": [
+    "Reference hardware is mainland Hisense UXS / MT9655 / Android 14; other models and firmware are unverified.",
+    "TV direct-resume core was observed on the equivalent personal 1.8.4 build; new dual-installed selection and missing-DUMP fallback have code/build/mock coverage rather than a new hardware deployment.",
+    "Passwords and PINs remain manual in the official client.",
+    "Ambiguous installed versions or sessions stop automatic handoff."
+  ]
+}

@@ -171,7 +171,7 @@ final class EmbyRecs {
             p.posterKey = p.posterPath == null ? null : "emby-poster-" + digest(identity + "\n" + p.posterPath) + ".jpg";
             p.backdrop = "emby-" + digest(identity + "\n" + p.imagePath + "\n" + p.posterPath) + ".jpg";
             p.app = "emby";
-            p.pkg = "com.mb.android";
+            p.pkg = EmbyNativePlayer.preferred(context);
             // The installed Emby player reads its current profile's latest saved playback position.
             p.link = "emby://play/" + serverId + "/" + id;
             p.detailed = true;

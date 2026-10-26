@@ -2,5 +2,5 @@
 <resources>
     <string name="remote_key_service">映射支持的遥控器应用按键。在海信 UXS 上，从其他应用按首页返回 Free My TV；主动打开聚好看时保留原版桌面。仅辨识应用和窗口名称，不读取画面内容。</string>
     <string name="emby_account_remote">Emby 账号遥控</string>
-    <string name="emby_account_remote_description">仅在点击首页海报后，使用 Emby 画面中的按钮选择首页帐号。不输入密码或 PIN。</string>
+    <string name="emby_account_remote_description">在明确打开海报或同步帐号后，操作官方 Emby 通用版或 Android TV 版画面，交接续播与已保存的帐号。密码和 PIN 由本人输入。</string>
 </resources>

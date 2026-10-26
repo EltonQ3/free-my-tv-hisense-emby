@@ -125,6 +125,8 @@ final class Prefs {
     static void setEmbyAutoTabs(boolean on) { put("embyAutoTabs", on); }
     static boolean embyAutoAccount() { return embyRecommendations() && sp().getBoolean("embyAutoAccount", true); }
     static void setEmbyAutoAccount(boolean on) { put("embyAutoAccount", on); }
+    static String embyPlayer() { return sp().getString("embyPlayerPackage", "auto"); }
+    static void setEmbyPlayer(String pkg) { if (EmbyNativePlayer.supported(pkg)) put("embyPlayerPackage", pkg); }
     private static int embyChoice(String key, int fallback, int[] choices) {
         int value = sp().getInt(key, fallback);
         for (int choice : choices) if (choice == value) return value;

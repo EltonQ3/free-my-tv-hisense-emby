@@ -293,13 +293,17 @@ def install(serial):
     if input('是否授權首頁調試開關？會授予 WRITE_SECURE_SETTINGS；按鈕僅切換開發者及 USB 調試。[y/N]：').strip().lower() == 'y':
         result = run_adb(serial, 'shell', 'pm', 'grant', 'io.freemytv', 'android.permission.WRITE_SECURE_SETTINGS')
         print('調試開關授權完成。' if result.returncode == 0 else '未確認授權成功；可用系統設定手動管理調試。')
+    if input('如使用 Emby Android TV，是否授權可選的直接續播？DUMP 可讀較廣系統狀態；此版只識別 Emby 任務／程序。不授權仍可原生續播，通用版不需此權限。[y/N]：').strip().lower() == 'y':
+        result = run_adb(serial, 'shell', 'pm', 'grant', 'io.freemytv', 'android.permission.DUMP')
+        print('直接續播授權完成。' if result.returncode == 0 else '未確認授權成功；仍可使用原生續播。')
     optional = ROOT / 'Emby-TV.apk'
     if optional.is_file() and input('是否安裝旁附的官方 Emby 電視版？簽名或降級失敗時不會清資料。[y/N]：').strip().lower() == 'y':
         result = run_adb(serial, 'install', '--no-incremental', '-r', str(optional))
         print('Emby 安裝完成。' if result.returncode == 0 and b'Success' in result.stdout else 'Emby 未安裝；原有資料保留。')
     result = run_adb(serial, 'shell', 'am', 'start', '-n', 'io.freemytv/.SettingsActivity')
     print('桌面安裝成功。請在電視選「主屏幕 → Free My TV」，依提示授權。')
-    print('Emby／TMDB：設定主頁 → 推薦海報設定；五種風格：主題設定。')
+    print('Emby／TMDB：設定主頁 → 推薦海報設定；六種風格：主題設定。')
+    print('兩版 Emby 可同時保留；在 Emby 設定的「播放應用」選擇預設播放器，再正常登入。')
     if result.returncode:
         print('設定頁未確認開啟，請從電視應用清單手動打開 Free My TV。')
 

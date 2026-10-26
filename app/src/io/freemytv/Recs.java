@@ -242,7 +242,7 @@ final class Recs {
     }
 
     private List<Pick> embyNow(String kind) {
-        if (HomeApps.launchIntent(context.getPackageManager(), "com.mb.android") == null) return new ArrayList<>();
+        if (EmbyNativePlayer.preferred(context).isEmpty()) return new ArrayList<>();
         return EmbyRow.row(picks, kind, Prefs.embyPosterCount());
     }
 

@@ -7,6 +7,7 @@ public final class HandoffCheck {
  static int checks;
  static void check(boolean b,String why){checks++;if(!b)throw new AssertionError(why);}
  public static void main(String[]args)throws Exception{
+  EmbyNativePlayer.player=EmbyNativePlayer.ANDROID;
   try(ServerSocket server=new ServerSocket(0,1,InetAddress.getByName("127.0.0.1"))){
    StringBuilder captured=new StringBuilder();
    Thread worker=new Thread(()->{try(Socket client=server.accept()){
@@ -21,8 +22,7 @@ public final class HandoffCheck {
      .put("UserData",new JSONObject().put("PlaybackPositionTicks",9106750000L)).toString();
    android.content.Context context=new android.content.Context();
    EmbyPlayback.Target target=EmbyPlayback.forItem(context,"movie-a","",false);
-   EmbyPlayerSession.Session session=new EmbyPlayerSession.Session(new JSONObject().put("Id","session-a")
-     .put("UserId","user-a").put("SupportsRemoteControl",true).put("PlayableMediaTypes",new JSONArray().put("Video")));
+   EmbyPlayerSession.Session session=TestSessions.player(EmbyNativePlayer.ANDROID,"session-a","user-a");
    EmbyPlayer.play(context,target,session);worker.join(3000);
    check(!worker.isAlive(),"actual handoff receives successful mock response");
    String request=captured.toString();JSONObject body=new JSONObject(request.substring(request.indexOf("\n\n")+2));

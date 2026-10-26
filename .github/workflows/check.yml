@@ -39,6 +39,10 @@ jobs:
       - run: bash tools/check-hisense-home.sh
       - run: bash tools/check-emby-account.sh
       - run: bash tools/check-emby-playback.sh
+      - run: bash tools/check-emby-tasks.sh
+      - run: bash tools/check-emby-process.sh
+      - run: bash tools/check-emby-return.sh
+      - run: python3 tests/InstallerCheck.py
 
   web:
     name: Translations, LG and Samsung

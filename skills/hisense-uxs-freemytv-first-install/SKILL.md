@@ -1,15 +1,15 @@
 ---
 name: hisense-uxs-freemytv-first-install
-description: Guide a new owner through first-time installation of the sanitized Free My TV 1.8.1 Hisense UXS Emby package, from TV debugging and Home setup to optional private Emby or TMDB configuration and rollback. Use the supplied Public ZIP; no previous installation or household settings are assumed.
+description: Guide a new owner through first-time installation of the sanitized Free My TV 1.8.5 Hisense UXS Emby package with selectable Android and Android TV players, from TV debugging and Home setup to optional private Emby or TMDB configuration and rollback. Use the supplied Public ZIP; no previous installation or household settings are assumed.
 ---
 
 # Free My TV · Hisense TV CN MT9655 / Emby：首次安裝
 
 本改版面向中國大陸版、搭載 MediaTek MT9655 的 Hisense TV；目前僅測試海信 UXS 可用性。其他 MT9655 型號、其他晶片、其他地區版本及韌體未驗證，不能視為所有海信電視均已適配。
 
-協助第一次使用的人安裝 **1.8.1 脫敏版**，完成基本桌面後，再按需要設定 Emby 海報、TMDB 和聚好看按需啟用。用簡單中文說明目前要做的事；電視上的授權、密碼和 PIN 由使用者操作。
+協助第一次使用的人安裝 **1.8.5 脫敏版**，完成基本桌面後，再按需要設定 Emby 海報、TMDB 和聚好看按需啟用。用簡單中文說明目前要做的事；電視上的授權、密碼和 PIN 由使用者操作。
 
-本 skill 配套檔案為 `FreeMyTV-UXS-1.8.1-20261025-Public.zip`。這是非官方桌面應用，不是電視韌體；不需要既有私人恢復包、舊安裝紀錄或其他人的設定。
+本 skill 配套檔案為 `FreeMyTV-UXS-1.8.5-20261026-Public.zip`。這是非官方桌面應用，不是電視韌體；不需要既有私人恢復包、舊安裝紀錄或其他人的設定。
 
 ## 一、確認對象與準備
 
@@ -32,9 +32,9 @@ description: Guide a new owner through first-time installation of the sanitized 
 固定版本資料：
 
 - 套件：`io.freemytv`
-- 版本：`1.8.1-uxs.20261025-public`；versionCode `34`
-- Public ZIP SHA-256：`1075a50a71441ccecd280c7f98b7ebe737fea4f211331baf1e5a03360abe1326`
-- `FreeMyTV.apk` SHA-256：`f65617673ca8ee9099b9880717ce483657e1c70056044f6ca90a8f6590a80f24`
+- 版本：`1.8.5-uxs.20261026-public`；versionCode `38`
+- Public ZIP SHA-256：以同版 `Public-SHA256SUMS.txt` 為準。
+- `FreeMyTV.apk` SHA-256：須同時符合 `version.json` 與同版 `Public-SHA256SUMS.txt`。
 - APK 簽名憑證 SHA-256：`e9271d5ef1ea9a85bcb9b1d25a6029d74d0c68679bf8d3da7a6c5d66a90ea03e`
 
 先比對下載 ZIP 的雜湊，再在解壓資料夾執行：
@@ -84,7 +84,7 @@ adb shell pm grant io.freemytv android.permission.WRITE_SECURE_SETTINGS
 2. 設定主頁 → **主屏幕 → Free My TV**，等應用完成切換。
 3. 若電視再次要求「允許 USB 調試」，這次是**桌面自身的本機連線**，與電腦授權不同；讓使用者允許並可勾選一律允許。
 4. 系統無障礙設定中開啟 **Free My TV**，供 Home／遙控按鈕處理。服務名稱對應 `io.freemytv/.RemoteKeyService`。
-5. 若稍後需要首頁選 Emby 用戶時自動切換播放器帳號，再開啟 **Emby 账号遥控**，對應 `.EmbyAccountService`。這項服務會操作原版 Emby 介面；密碼／PIN 仍手動輸入。
+5. 若要使用 TV 版海報續播，或需要自動切換任何一版播放器帳號，再開啟 **Emby 账号遥控**，對應 `.EmbyAccountService`。這項服務會操作原版 Emby 介面；密碼／PIN 仍手動輸入。
 6. 保留所有其他原有無障礙服務。若 Android 提示受限制設定，按該機提供的官方應用授權介面處理；不要透過改寫整份服務清單繞過提示。
 
 先完成基本驗證：新桌面可見；打開一個普通 App，再按**實體遙控器 Home**，能回 Free My TV；設定頁可重新打開。不能僅憑電腦模擬 Home 就宣稱實體按鍵正常。
@@ -93,7 +93,19 @@ adb shell pm grant io.freemytv android.permission.WRITE_SECURE_SETTINGS
 
 ## 六、可選：連接 Emby 海報和續播
 
-沒有 Emby 的人可略過。安裝包不提供伺服器或影片，也不包含播放器；需要另外安裝可信來源的**官方 Emby 電視版**，在播放器中正常登入自己的伺服器和帳號。本版已驗證的播放器是 `com.mb.android` **3.5.35**，不代表它是目前最新版本；新版介面需另驗證自動切帳號是否相容。
+沒有 Emby 的人可略過。安裝包不提供伺服器、影片或第三方播放器 APK。另從[官方下載頁](https://emby.media/emby-for-android.html)安裝 **Emby Android 通用版**（`com.mb.android`）或[官方 Emby Android TV](https://emby.media/emby-for-android-tv.html)（`tv.emby.embyatv`），並正常登入自己的伺服器與帳號。兩版可同時保留。
+
+在 **推荐海报设置 → Emby → 播放应用** 選擇要用的版本；未選時優先 TV 版，再選已安裝的通用版。首頁卡片、海報播放與帳號同步都跟隨此選擇。參考版本為通用版 **3.5.35**、TV 版 **2.5.03g**；不代表目前最新版或所有新版介面均實測。
+
+**TV 直接續播的可選授權：** 安裝工具會另外詢問是否授予 `DUMP`。說明它可讀取較廣的系統狀態，本程式只解析 Emby／自身的窗口任務與程序身份，不保留或上傳完整傾印。先沿用安裝對話已有的明確授權；未獲授權不執行以下命令。通用版不需要 DUMP，TV 版拒絕此權限仍可走 Emby 的原生續播按鈕。
+
+```sh
+adb shell pm grant io.freemytv android.permission.DUMP
+```
+
+此為一次性權限；平常關閉開發者／USB 調試後仍可使用。Android TV 的直接續播需要「Emby 账号遥控」服務核對原生畫面；如不使用此服務，保留正常手動打開播放器的方式。若先用過未授權的 TV 原生續播，再補授權，可在使用者同意時重啟電視一次，讓程式以乾淨連線啟用直接續播；不要用反覆開啟啟動頁的方式強行測試。
+
+本版會按套件、安裝版本、裝置及帳號識別播放器，不因安裝了另一版就停用或刪除它；版本相同而不能分辨、或有多個同樣身份的連線時，停止自動交接並讓使用者核對版本及登入狀態。
 
 請使用者備妥自己的伺服器 URL 和 API 金鑰。自管伺服器可在 Emby 管理後台建立；若無管理權限，向伺服器提供者取得可用設定，不讀取或破解播放器的私人登入資料。金鑰不要貼進聊天。
 
@@ -111,6 +123,8 @@ adb shell pm grant io.freemytv android.permission.WRITE_SECURE_SETTINGS
 內網 HTTP 只支援經驗證的私有地址；外網使用有效 HTTPS。若電腦能驗證、電視卻不能載入，分別核對兩者到伺服器的網路可達性；不要改成全域允許明文或略過憑證驗證。
 
 首頁的 Emby 帳號下拉選單會讀取原色頭像；推薦按目前用戶組織為繼續播放、推薦、新到電影、新上劇。點選劇集按該用戶觀看進度決定續播對象，並傳遞起播位置。播放器需正常登入且介面可操作；遇密碼／PIN 或切換失敗時停在可由使用者完成的畫面，不假報切換成功。
+
+需要驗收時先核對所選播放器與首頁帳號：從一部已有進度的影片開始，確認起播位置；按 Back 應退出播放並回原生片頁，不能再次播放。TV 直接路徑只發送一次播放；完全退出後若有舊程序殘留，會在發送之前改選原生續播按鈕，不在不確定的播放回應後重試。不要把「安裝成功」等同於完成播放驗收。
 
 推薦停留每 30 分鐘同步，返回首頁也會更新；焦點不在海報且空閒 10 秒時換分頁。不是每次都要重新執行電腦工具。需要驗證續播時，讓使用者選一部已有進度的影片確認；不擅自改動進度或標記看過。
 
@@ -153,6 +167,6 @@ adb shell pm grant io.freemytv android.permission.WRITE_SECURE_SETTINGS
 
 同一失敗在確認前提後仍重現時，保留原可用桌面，記錄必要的非敏感錯誤再定位，不輪流猜測危險系統設定。避免完整輸出活動傾印、片庫、觀看進度或金鑰；測試 Home／帳號時避免 `uiautomator dump` 暫時壓掉無障礙服務。
 
-Public APK 已完成電腦端編譯、簽名、翻譯、策略與脫敏檢查；同功能個人版已有 UXS 的 M 模式調試與使用者確認的 U 模式日常使用經驗，但**此 Public APK 尚未完成乾淨電視首次安裝驗證**。本 skill 提供首次安裝流程，不把上述參考當成所有韌體的保證。
+Public APK 已完成電腦端編譯、簽名、翻譯、策略與脫敏檢查；同功能個人版已有 UXS 的 M 模式調試與使用者確認的 U 模式日常使用經驗，但**此 Public APK 尚未完成乾淨電視首次安裝驗證**。新雙版同裝與跨播放器隔離已有本機策略和 HTTP 模擬驗證；尚未完成本次雙版同裝實機驗收。TV 直接續播／返回／切換帳號／關閉調試的個人版已有 UXS 實測，但不等於脫敏 APK 的乾淨首次安裝驗證。本 skill 提供首次安裝流程，不把上述參考當成所有韌體的保證。
 
 保留包內 MIT `LICENSE`、`source.zip` 和 `THIRD_PARTY_NOTICES.md`；角色插畫和商標的權利說明依該檔案。此 skill 僅用於本地安裝和設定，不授權發布網站、推送 GitHub、刷機或取得其他人的憑證。

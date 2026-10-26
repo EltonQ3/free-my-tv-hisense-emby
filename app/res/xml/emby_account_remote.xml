@@ -3,6 +3,7 @@
     android:description="@string/emby_account_remote_description"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewClicked|typeViewFocused|typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:packageNames="com.mb.android"
+    android:packageNames="com.mb.android,tv.emby.embyatv"
+    android:accessibilityFlags="flagReportViewIds"
     android:notificationTimeout="120"
     android:canRetrieveWindowContent="true" />

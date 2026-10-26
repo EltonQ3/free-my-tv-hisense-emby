@@ -23,7 +23,7 @@ public final class EmbySettingsActivity extends Activity implements Recs.Listene
     private EditText server, key;
     private TextView status;
     private LinearLayout rows;
-    private Button profile, auto, delay, count, sync, accountRemote;
+    private Button profile, auto, delay, count, sync, accountRemote, player;
     private Click click;
     private boolean connecting;
     private String profileName = "";
@@ -54,6 +54,7 @@ public final class EmbySettingsActivity extends Activity implements Recs.Listene
         key.setHint(saved.optString("api_key").isEmpty() ? Ui.tr("API Key") : Ui.tr("Keep current key"));
         profile = button(Ui.tr("Account"), this::connect);
         button(Ui.tr("Connect"), this::connect);
+        player = button("", this::choosePlayer);
         auto = button("", () -> { Prefs.setEmbyAutoTabs(!Prefs.embyAutoTabs()); values(); });
         delay = button("", () -> choose(Ui.tr("Idle seconds"), "embyIdleSeconds", Prefs.embyIdleSeconds(), new int[] {5,10,15,30}));
         count = button("", () -> choose(Ui.tr("Poster count"), "embyPosterCount", Prefs.embyPosterCount(), new int[] {5,8,10}));
@@ -94,8 +95,24 @@ public final class EmbySettingsActivity extends Activity implements Recs.Listene
         count.setText(Ui.tr("Poster count") + " · " + Prefs.embyPosterCount());
         sync.setText(Ui.tr("Sync minutes") + " · " + Prefs.embySyncMinutes());
         profile.setText(Ui.tr("Account") + " · " + (profileName.isEmpty() ? "—" : profileName));
+        player.setText(Ui.tr("Playback app") + " · " + EmbyNativePlayer.label(EmbyNativePlayer.preferred(this)));
         accountRemote.setText(Ui.tr("Auto-switch Emby account") + " · " + (!Prefs.embyAutoAccount() ? Ui.tr("Off")
                 : EmbyAccountService.connected() ? Ui.tr("On") : Ui.tr("Permission needed")));
+    }
+    private void choosePlayer() {
+        java.util.List<String> packages = EmbyNativePlayer.installed(this);
+        if (packages.isEmpty()) return;
+        String[] names = new String[packages.size()]; int selected = 0;
+        for (int i = 0; i < names.length; i++) {
+            names[i] = EmbyNativePlayer.label(packages.get(i));
+            if (packages.get(i).equals(EmbyNativePlayer.preferred(this))) selected = i;
+        }
+        AlertDialog d = new AlertDialog.Builder(this).setTitle(Ui.tr("Playback app"))
+                .setSingleChoiceItems(names, selected, (dialog, which) -> {
+                    click.open(); Prefs.setEmbyPlayer(packages.get(which));
+                    Recs.get(this).invalidate(); values(); dialog.dismiss();
+                }).setNegativeButton(Ui.tr("Cancel"), null).create();
+        show(d);
     }
     private void accountControl() {
         if (Prefs.embyAutoAccount() && EmbyAccountService.connected()) {
